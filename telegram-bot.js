@@ -1,4 +1,3 @@
-﻿const fs = require("fs/promises");
 const path = require("path");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -8,7 +7,6 @@ const ADS_API_BASE = String(process.env.ADS_API_BASE || LOCAL_API_BASE).trim().r
 const SUPPORT_API_BASE = String(process.env.SUPPORT_API_BASE || ADS_API_BASE).trim().replace(/\/+$/, "");
 const TELEGRAM_API_BASE = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : "";
 const TELEGRAM_FILE_BASE = BOT_TOKEN ? `https://api.telegram.org/file/bot${BOT_TOKEN}` : "";
-const UPLOADS_DIR = path.join(__dirname, "uploads");
 const PAGE_SIZE = 6;
 const SUPPORT_SYNC_MS = Number(process.env.SUPPORT_SYNC_MS || 3500);
 const DEFAULT_SELLER_TELEGRAM = "RXSEND";
@@ -408,8 +406,34 @@ function buildTitle(data) {
   return `${data.brand} ${data.model}${data.memory ? ` ${data.memory}` : ""} ${data.condition === "new" ? "\u043D\u043E\u0432\u044B\u0439" : "\u0431/\u0443"}`;
 }
 
-async function ensureUploadsDir() {
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+function imageContentTypeByExt(ext = "") {
+  const normalized = String(ext || "").toLowerCase();
+  if (normalized === ".png") {
+    return "image/png";
+  }
+  if (normalized === ".webp") {
+    return "image/webp";
+  }
+  return "image/jpeg";
+}
+
+async function uploadImageToSite(buffer, ext = ".jpg") {
+  const response = await fetchWithFallback(ADS_API_BASE, "/api/uploads", {
+    method: "POST",
+    headers: withAdminHeaders({
+      "Content-Type": imageContentTypeByExt(ext),
+      "X-File-Ext": ext
+    }),
+    body: buffer
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `Upload API HTTP ${response.status}`);
+  }
+  if (!data || typeof data.url !== "string" || !data.url.trim()) {
+    throw new Error("Upload API returned empty url.");
+  }
+  return data.url.trim();
 }
 
 async function downloadPhotoFromTelegram(fileId) {
@@ -423,14 +447,9 @@ async function downloadPhotoFromTelegram(fileId) {
     throw new Error(`\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0444\u0430\u0439\u043B\u0430 (${response.status}).`);
   }
 
-  const ext = path.extname(fileInfo.file_path) || ".jpg";
-  const filename = `${Date.now()}_${Math.floor(Math.random() * 1_000_000)}${ext}`;
-  const filePath = path.join(UPLOADS_DIR, filename);
+  const ext = (path.extname(fileInfo.file_path) || ".jpg").toLowerCase();
   const buffer = Buffer.from(await response.arrayBuffer());
-
-  await ensureUploadsDir();
-  await fs.writeFile(filePath, buffer);
-  return `/uploads/${filename}`;
+  return uploadImageToSite(buffer, ext);
 }
 
 async function sendCategoryMenu(chatId, mode = "catalog", messageId = null) {

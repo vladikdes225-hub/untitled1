@@ -277,7 +277,7 @@ function getVisitorId(req, payloadVisitorId = "") {
 
 function getCorsHeaders(req) {
   const headers = {
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Token, X-Visitor-Id",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Token, X-Visitor-Id, X-File-Ext",
     "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS"
   };
   const origin = normalizeOrigin(req && req.headers ? req.headers.origin : "");
@@ -764,6 +764,42 @@ async function parseJsonBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+async function parseRawBody(req) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > REQUEST_BODY_LIMIT_BYTES) {
+      const error = new Error("Payload too large");
+      error.code = "PAYLOAD_TOO_LARGE";
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function safeUploadExt(contentType = "", extHint = "") {
+  const normalizedHint = String(extHint || "").trim().toLowerCase();
+  if (normalizedHint && /^[.][a-z0-9]{1,8}$/.test(normalizedHint)) {
+    if ([".jpg", ".jpeg", ".png", ".webp"].includes(normalizedHint)) {
+      return normalizedHint === ".jpeg" ? ".jpg" : normalizedHint;
+    }
+  }
+
+  const normalizedType = String(contentType || "").split(";")[0].trim().toLowerCase();
+  if (normalizedType === "image/jpeg") {
+    return ".jpg";
+  }
+  if (normalizedType === "image/png") {
+    return ".png";
+  }
+  if (normalizedType === "image/webp") {
+    return ".webp";
+  }
+  return ".jpg";
+}
+
 async function deleteAdImageIfNeeded(ad) {
   if (!ad) {
     return;
@@ -818,6 +854,36 @@ async function handleApi(req, res, urlObj) {
       timestamp: new Date().toISOString(),
       storage: STORAGE_MODE
     });
+    return true;
+  }
+
+  if (pathname === "/api/uploads" && req.method === "POST") {
+    if (!requireAdmin(req, res)) {
+      return true;
+    }
+
+    let body;
+    try {
+      body = await parseRawBody(req);
+    } catch (error) {
+      sendBodyParseError(res, error);
+      return true;
+    }
+
+    if (!body || !body.length) {
+      sendJson(res, 400, { error: "Empty upload body." });
+      return true;
+    }
+
+    const extHint = String(req.headers["x-file-ext"] || "").trim();
+    const ext = safeUploadExt(req.headers["content-type"], extHint);
+    const filename = `${Date.now()}_${Math.floor(Math.random() * 1_000_000)}${ext}`;
+    const filePath = path.join(UPLOADS_DIR, filename);
+
+    await fs.mkdir(UPLOADS_DIR, { recursive: true });
+    await fs.writeFile(filePath, body);
+
+    sendJson(res, 201, { url: `/uploads/${filename}` });
     return true;
   }
 
