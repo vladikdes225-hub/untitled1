@@ -486,6 +486,8 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  user-select: none;
 }
 
 .product-photo img {
@@ -495,6 +497,7 @@ input {
   object-position: center;
   display: block;
   transition: transform 0.18s ease;
+  will-change: transform;
 }
 
 .product-photo .product-photo-image {
@@ -502,7 +505,11 @@ input {
 }
 
 .product-photo.is-zoomed .product-photo-image {
-  cursor: zoom-out;
+  cursor: grab;
+}
+
+.product-photo.is-panning .product-photo-image {
+  cursor: grabbing;
 }
 
 .product-photo.no-photo {

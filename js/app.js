@@ -46,6 +46,13 @@
     activeAdId: null,
     activeImageIndex: 0,
     photoZoom: 1,
+    photoPanX: 0,
+    photoPanY: 0,
+    isPhotoPanning: false,
+    photoPanStartX: 0,
+    photoPanStartY: 0,
+    photoPanOriginX: 0,
+    photoPanOriginY: 0,
     support: {
       panelOpen: false,
       visitorId: "",
@@ -305,18 +312,68 @@
     return Math.min(max, Math.max(min, value));
   }
 
+  function getPhotoPanBounds() {
+    const stage = els.productPhoto.querySelector(".product-photo-stage");
+    if (!stage) {
+      return { x: 0, y: 0 };
+    }
+    const width = stage.clientWidth || 0;
+    const height = stage.clientHeight || 0;
+    const extraX = Math.max(width * state.photoZoom - width, 0);
+    const extraY = Math.max(height * state.photoZoom - height, 0);
+    return {
+      x: extraX / 2,
+      y: extraY / 2
+    };
+  }
+
+  function clampPhotoPan() {
+    if (state.photoZoom <= PHOTO_ZOOM_MIN + 0.01) {
+      state.photoPanX = 0;
+      state.photoPanY = 0;
+      return;
+    }
+    const bounds = getPhotoPanBounds();
+    state.photoPanX = clampNumber(state.photoPanX, -bounds.x, bounds.x);
+    state.photoPanY = clampNumber(state.photoPanY, -bounds.y, bounds.y);
+  }
+
+  function setPhotoPan(x, y) {
+    state.photoPanX = Number(x) || 0;
+    state.photoPanY = Number(y) || 0;
+    clampPhotoPan();
+    applyPhotoZoom();
+  }
+
+  function resetPhotoPan() {
+    state.photoPanX = 0;
+    state.photoPanY = 0;
+    state.isPhotoPanning = false;
+    els.productPhoto.classList.remove("is-panning");
+  }
+
   function applyPhotoZoom() {
     const image = els.productPhoto.querySelector(".product-photo-image");
     if (!image) {
       els.productPhoto.classList.remove("is-zoomed");
+      els.productPhoto.classList.remove("is-panning");
       return;
     }
-    image.style.transform = `scale(${state.photoZoom.toFixed(2)})`;
+    clampPhotoPan();
+    image.style.transform = `translate(${state.photoPanX.toFixed(1)}px, ${state.photoPanY.toFixed(1)}px) scale(${state.photoZoom.toFixed(2)})`;
     els.productPhoto.classList.toggle("is-zoomed", state.photoZoom > PHOTO_ZOOM_MIN + 0.01);
+    const resetButton = els.productPhoto.querySelector('[data-photo-zoom="reset"]');
+    if (resetButton) {
+      resetButton.textContent = `${Math.round(state.photoZoom * 100)}%`;
+    }
   }
 
   function setPhotoZoom(value) {
+    const prevZoom = state.photoZoom;
     state.photoZoom = clampNumber(Number(value) || PHOTO_ZOOM_MIN, PHOTO_ZOOM_MIN, PHOTO_ZOOM_MAX);
+    if (Math.abs(state.photoZoom - prevZoom) > 0.001 && state.photoZoom <= PHOTO_ZOOM_MIN + 0.01) {
+      resetPhotoPan();
+    }
     applyPhotoZoom();
   }
 
@@ -347,6 +404,7 @@
       els.productPhoto.classList.add("no-photo");
       els.productPhoto.textContent = "Фото отсутствует";
       state.photoZoom = PHOTO_ZOOM_MIN;
+      resetPhotoPan();
       els.productPhoto.classList.remove("is-zoomed");
     }
 
@@ -365,6 +423,7 @@
     state.activeAdId = Number(ad.id);
     state.activeImageIndex = 0;
     state.photoZoom = PHOTO_ZOOM_MIN;
+    resetPhotoPan();
 
     const sellerHandle = normalizeTelegram(ad.sellerTelegram) || TELEGRAM_FALLBACK;
     const managerHandle = normalizeTelegram(ad.managerTelegram) || TELEGRAM_FALLBACK;
@@ -394,6 +453,7 @@
     state.activeAdId = null;
     state.activeImageIndex = 0;
     state.photoZoom = PHOTO_ZOOM_MIN;
+    resetPhotoPan();
     els.productPhoto.classList.remove("is-zoomed");
     els.overlay.classList.remove("is-open");
     els.overlay.setAttribute("aria-hidden", "true");
@@ -764,6 +824,45 @@
       }
       event.preventDefault();
       setPhotoZoom(state.photoZoom > PHOTO_ZOOM_MIN + 0.01 ? PHOTO_ZOOM_MIN : 2);
+    });
+
+    els.productPhoto.addEventListener("pointerdown", (event) => {
+      const image = event.target.closest(".product-photo-image");
+      if (!image || state.photoZoom <= PHOTO_ZOOM_MIN + 0.01) {
+        return;
+      }
+      event.preventDefault();
+      state.isPhotoPanning = true;
+      state.photoPanStartX = event.clientX;
+      state.photoPanStartY = event.clientY;
+      state.photoPanOriginX = state.photoPanX;
+      state.photoPanOriginY = state.photoPanY;
+      els.productPhoto.classList.add("is-panning");
+    });
+
+    window.addEventListener("pointermove", (event) => {
+      if (!state.isPhotoPanning) {
+        return;
+      }
+      const dx = event.clientX - state.photoPanStartX;
+      const dy = event.clientY - state.photoPanStartY;
+      setPhotoPan(state.photoPanOriginX + dx, state.photoPanOriginY + dy);
+    });
+
+    window.addEventListener("pointerup", () => {
+      if (!state.isPhotoPanning) {
+        return;
+      }
+      state.isPhotoPanning = false;
+      els.productPhoto.classList.remove("is-panning");
+    });
+
+    window.addEventListener("pointercancel", () => {
+      if (!state.isPhotoPanning) {
+        return;
+      }
+      state.isPhotoPanning = false;
+      els.productPhoto.classList.remove("is-panning");
     });
 
     window.addEventListener("keydown", (event) => {
