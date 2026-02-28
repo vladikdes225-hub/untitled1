@@ -405,6 +405,61 @@ input {
   font-weight: 600;
 }
 
+.site-footer {
+  margin: 24px 14px 86px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(8, 196, 233, 0.14), transparent 44%),
+    linear-gradient(170deg, #111821, #0d1219);
+  box-shadow: var(--shadow);
+}
+
+.site-footer-inner {
+  padding: 18px 20px 20px;
+}
+
+.footer-title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.footer-subtitle {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.footer-contacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.footer-contact {
+  border: 1px solid rgba(145, 154, 166, 0.2);
+  border-radius: 12px;
+  background: rgba(17, 23, 31, 0.72);
+  text-decoration: none;
+  color: var(--text);
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  min-height: 84px;
+}
+
+.footer-contact:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.footer-contact-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -832,6 +887,10 @@ input {
   .product-photo {
     height: clamp(240px, 42vh, 420px);
   }
+
+  .footer-contacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 780px) {
@@ -873,6 +932,22 @@ input {
 
   .product-info h3 {
     font-size: 24px;
+  }
+
+  .site-footer {
+    margin: 16px 10px 84px;
+  }
+
+  .site-footer-inner {
+    padding: 14px;
+  }
+
+  .footer-title {
+    font-size: 24px;
+  }
+
+  .footer-contacts {
+    grid-template-columns: 1fr;
   }
 }
 
