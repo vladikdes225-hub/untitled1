@@ -1,7 +1,9 @@
 "use strict";
 
 (function initMarketplace() {
-  const API_FALLBACK_BASE = "https://b1llysotatie.eu-4.evennode.com";
+  const API_FALLBACK_BASE = String(document.documentElement.getAttribute("data-api-fallback-base") || "")
+    .trim()
+    .replace(/\/+$/, "");
   const TELEGRAM_FALLBACK = "RXSEND";
   const SUPPORT_POLL_MS = 3000;
   const SUPPORT_VISITOR_KEY = "rxsend_support_visitor_id";
@@ -375,7 +377,7 @@
       }
       return data;
     } catch (error) {
-      if (path.startsWith("http")) {
+      if (path.startsWith("http") || !API_FALLBACK_BASE) {
         throw error;
       }
       const fallbackUrl = `${API_FALLBACK_BASE}${path}`;
@@ -613,6 +615,9 @@
       try {
         data = await fetchJson("/api/ads");
       } catch (error) {
+        if (!API_FALLBACK_BASE) {
+          throw error;
+        }
         data = await fetchJson(`${API_FALLBACK_BASE}/api/ads`);
       }
       state.ads = Array.isArray(data.items) ? data.items : [];
@@ -735,4 +740,3 @@
   loadAds();
   initSupport();
 })();
-

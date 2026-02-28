@@ -15,9 +15,14 @@ const RATE_LIMIT_GLOBAL_MAX = Number(process.env.RATE_LIMIT_GLOBAL_MAX || 240);
 const RATE_LIMIT_SUPPORT_MAX = Number(process.env.RATE_LIMIT_SUPPORT_MAX || 60);
 const REQUEST_BODY_LIMIT_BYTES = Number(process.env.REQUEST_BODY_LIMIT_BYTES || 2_000_000);
 const CSP_CONNECT_SRC_RAW = String(process.env.CSP_CONNECT_SRC || "").trim();
+const DATABASE_URL = String(process.env.DATABASE_URL || "").trim();
+const DATABASE_SSL_MODE = String(process.env.DATABASE_SSL || "auto").trim().toLowerCase();
+const DATABASE_POOL_MAX = Math.max(Number(process.env.DATABASE_POOL_MAX || 10), 1);
 const ROOT_DIR = __dirname;
-const DATA_DIR = path.join(ROOT_DIR, "data");
-const UPLOADS_DIR = path.join(ROOT_DIR, "uploads");
+const DEFAULT_DATA_DIR = path.join(ROOT_DIR, "data");
+const DEFAULT_UPLOADS_DIR = path.join(ROOT_DIR, "uploads");
+const DATA_DIR = path.resolve(String(process.env.DATA_DIR || "").trim() || DEFAULT_DATA_DIR);
+const UPLOADS_DIR = path.resolve(String(process.env.UPLOADS_DIR || "").trim() || DEFAULT_UPLOADS_DIR);
 const ADS_FILE = path.join(DATA_DIR, "ads.json");
 const SELLERS_FILE = path.join(DATA_DIR, "sellers.json");
 const SUPPORT_FILE = path.join(DATA_DIR, "support.json");
@@ -37,8 +42,16 @@ const DEFAULT_CORS_ORIGINS = new Set([
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3001"
 ]);
+const STORAGE_KEYS = {
+  ads: "ads",
+  sellers: "sellers",
+  support: "support"
+};
+const STORAGE_MODE = DATABASE_URL ? "postgres" : "file";
 const rateLimitStore = new Map();
 let missingAdminTokenWarningShown = false;
+let pgPool = null;
+let storageReadyPromise = null;
 
 const DEFAULT_MANAGER = {
   name: "RXSEND",
@@ -354,7 +367,38 @@ function normalizeTelegram(value) {
   return cleaned.slice(0, 50);
 }
 
-async function ensureStorage() {
+function resolveDatabaseSsl() {
+  if (DATABASE_SSL_MODE === "true" || DATABASE_SSL_MODE === "1" || DATABASE_SSL_MODE === "yes") {
+    return { rejectUnauthorized: false };
+  }
+  if (DATABASE_SSL_MODE === "false" || DATABASE_SSL_MODE === "0" || DATABASE_SSL_MODE === "no") {
+    return false;
+  }
+  return IS_PRODUCTION ? { rejectUnauthorized: false } : false;
+}
+
+function getPgPool() {
+  if (!DATABASE_URL) {
+    return null;
+  }
+  if (pgPool) {
+    return pgPool;
+  }
+  let Pool;
+  try {
+    ({ Pool } = require("pg"));
+  } catch (error) {
+    throw new Error("DATABASE_URL is set but dependency 'pg' is missing. Run: npm install pg");
+  }
+  pgPool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: resolveDatabaseSsl(),
+    max: DATABASE_POOL_MAX
+  });
+  return pgPool;
+}
+
+async function ensureFileStorage() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.mkdir(UPLOADS_DIR, { recursive: true });
 
@@ -369,41 +413,147 @@ async function ensureStorage() {
   }
 }
 
+async function readJsonArrayIfExists(filePath) {
+  try {
+    const raw = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function ensureDbStateKey(pool, key, defaultValue, filePath) {
+  const existing = await pool.query("SELECT 1 FROM app_state WHERE key = $1 LIMIT 1;", [key]);
+  if (existing.rowCount > 0) {
+    return;
+  }
+
+  const fileValue = await readJsonArrayIfExists(filePath);
+  const initial = Array.isArray(fileValue) ? fileValue : defaultValue;
+  await pool.query(
+    "INSERT INTO app_state (key, value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (key) DO NOTHING;",
+    [key, JSON.stringify(initial)]
+  );
+}
+
+async function ensureDatabaseStorage() {
+  const pool = getPgPool();
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_state (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL DEFAULT '[]'::jsonb,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await ensureDbStateKey(pool, STORAGE_KEYS.ads, DEFAULT_ADS, ADS_FILE);
+  await ensureDbStateKey(pool, STORAGE_KEYS.sellers, DEFAULT_SELLERS, SELLERS_FILE);
+  await ensureDbStateKey(pool, STORAGE_KEYS.support, DEFAULT_SUPPORT, SUPPORT_FILE);
+}
+
+async function ensureStorage() {
+  if (!storageReadyPromise) {
+    storageReadyPromise = STORAGE_MODE === "postgres" ? ensureDatabaseStorage() : ensureFileStorage();
+  }
+  return storageReadyPromise;
+}
+
 async function readJsonArray(filePath) {
-  await ensureStorage();
+  await ensureFileStorage();
   const raw = await fs.readFile(filePath, "utf8");
   const parsed = JSON.parse(raw);
   return Array.isArray(parsed) ? parsed : [];
 }
 
 async function writeJsonArray(filePath, arr) {
-  await ensureStorage();
+  await ensureFileStorage();
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   await fs.writeFile(tempPath, `${JSON.stringify(arr, null, 2)}\n`, "utf8");
   await fs.rename(tempPath, filePath);
 }
 
+async function readDbArray(key) {
+  await ensureStorage();
+  const pool = getPgPool();
+  const result = await pool.query("SELECT value FROM app_state WHERE key = $1 LIMIT 1;", [key]);
+  if (result.rowCount < 1) {
+    return [];
+  }
+  const value = result.rows[0] && Object.prototype.hasOwnProperty.call(result.rows[0], "value")
+    ? result.rows[0].value
+    : [];
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+async function writeDbArray(key, arr) {
+  await ensureStorage();
+  const pool = getPgPool();
+  const safe = Array.isArray(arr) ? arr : [];
+  await pool.query(
+    `
+      INSERT INTO app_state (key, value, updated_at)
+      VALUES ($1, $2::jsonb, NOW())
+      ON CONFLICT (key)
+      DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+    `,
+    [key, JSON.stringify(safe)]
+  );
+}
+
 async function readAds() {
-  return readJsonArray(ADS_FILE);
+  return STORAGE_MODE === "postgres"
+    ? readDbArray(STORAGE_KEYS.ads)
+    : readJsonArray(ADS_FILE);
 }
 
 async function writeAds(ads) {
+  if (STORAGE_MODE === "postgres") {
+    await writeDbArray(STORAGE_KEYS.ads, ads);
+    return;
+  }
   await writeJsonArray(ADS_FILE, ads);
 }
 
 async function readSellers() {
-  return readJsonArray(SELLERS_FILE);
+  return STORAGE_MODE === "postgres"
+    ? readDbArray(STORAGE_KEYS.sellers)
+    : readJsonArray(SELLERS_FILE);
 }
 
 async function writeSellers(sellers) {
+  if (STORAGE_MODE === "postgres") {
+    await writeDbArray(STORAGE_KEYS.sellers, sellers);
+    return;
+  }
   await writeJsonArray(SELLERS_FILE, sellers);
 }
 
 async function readSupportTickets() {
-  return readJsonArray(SUPPORT_FILE);
+  return STORAGE_MODE === "postgres"
+    ? readDbArray(STORAGE_KEYS.support)
+    : readJsonArray(SUPPORT_FILE);
 }
 
 async function writeSupportTickets(tickets) {
+  if (STORAGE_MODE === "postgres") {
+    await writeDbArray(STORAGE_KEYS.support, tickets);
+    return;
+  }
   await writeJsonArray(SUPPORT_FILE, tickets);
 }
 
@@ -665,7 +815,8 @@ async function handleApi(req, res, urlObj) {
     sendJson(res, 200, {
       ok: true,
       uptimeSec: Math.round(process.uptime()),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      storage: STORAGE_MODE
     });
     return true;
   }
@@ -1121,6 +1272,32 @@ if (IS_PRODUCTION && !CORS_ORIGINS_RAW) {
   console.warn("CORS_ORIGINS is empty in production. Configure explicit origins.");
 }
 
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+if (IS_PRODUCTION && STORAGE_MODE === "file" && DATA_DIR === DEFAULT_DATA_DIR) {
+  console.warn("DATA_DIR is not set in production. Use a persistent path to avoid data rollback.");
+}
+
+if (IS_PRODUCTION && UPLOADS_DIR === DEFAULT_UPLOADS_DIR) {
+  console.warn("UPLOADS_DIR is not set in production. Use a persistent path for uploaded files.");
+}
+
+if (IS_PRODUCTION && STORAGE_MODE === "file") {
+  console.warn("DATABASE_URL is not set. Ads/sellers/support will rollback on Render redeploy.");
+}
+
+async function startServer() {
+  try {
+    await ensureStorage();
+  } catch (error) {
+    console.error(`Storage initialization failed: ${error && error.message ? error.message : String(error)}`);
+    process.exit(1);
+  }
+
+  server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`STORAGE_MODE: ${STORAGE_MODE}`);
+    console.log(`DATA_DIR: ${DATA_DIR}`);
+    console.log(`UPLOADS_DIR: ${UPLOADS_DIR}`);
+  });
+}
+
+startServer();
