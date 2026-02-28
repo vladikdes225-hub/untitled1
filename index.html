@@ -1,0 +1,108 @@
+﻿<!doctype html>
+<html class="theme-dark" lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RXSEND Маркет</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" id="brandLink">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">RXSEND <span>Маркет</span></span>
+    </a>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="side-nav" aria-label="Основное меню">
+        <button class="side-link is-active" data-mode="market" type="button">
+          <span class="icon">&#x1F6D2;</span> Маркет
+        </button>
+        <button class="side-link" data-mode="all-devices" type="button">
+          <span class="icon">&#x1F4E6;</span> Все устройства
+        </button>
+        <button class="side-link" data-mode="only-new" type="button">
+          <span class="icon">&#x2728;</span> Только новые
+        </button>
+        <button class="side-link" data-mode="only-used" type="button">
+          <span class="icon">&#x267B;&#xFE0F;</span> Только Б/У
+        </button>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="search-row">
+        <label class="search-box">
+          <span aria-hidden="true">&#x1F50D;</span>
+          <input id="searchInput" type="search" placeholder="Поиск">
+        </label>
+      </div>
+
+      <div class="chips-row">
+        <button class="sort-btn" id="sortButton" type="button" aria-label="Сменить сортировку">Новые</button>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <h1 class="section-title">Объявления для тебя <span id="resultCount"></span></h1>
+      <section class="cards-grid" id="cardsGrid" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <section class="overlay" id="productOverlay" aria-hidden="true">
+    <div class="overlay-backdrop" data-close-product></div>
+    <article class="product-panel">
+      <header class="product-header">
+        <button type="button" class="ghost-link" data-close-product>Закрыть</button>
+        <h2 id="productCategory">Телефоны</h2>
+      </header>
+      <div class="product-main">
+        <div class="product-photo" id="productPhoto"></div>
+        <div class="product-gallery" id="productGallery"></div>
+        <div class="product-info">
+          <p class="product-price" id="productPrice"></p>
+          <h3 id="productTitle"></h3>
+          <p class="product-description" id="productDescription"></p>
+          <div class="product-seller">
+            <div>
+              <strong id="sellerName"></strong>
+              <p id="sellerContact"></p>
+            </div>
+            <a id="sellerProfileLink" class="seller-link" target="_blank" rel="noopener noreferrer">Открыть контакт</a>
+          </div>
+          <div class="product-actions">
+            <a id="managerLink" class="primary-btn" target="_blank" rel="noopener noreferrer">Связаться с менеджером</a>
+            <a id="buyLink" class="primary-btn is-buy" target="_blank" rel="noopener noreferrer">Перейти к покупке</a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="support-widget" id="supportWidget" aria-label="Техподдержка">
+    <button class="support-fab" id="supportToggle" type="button">Техподдержка</button>
+    <article class="support-panel" id="supportPanel" aria-hidden="true">
+      <header class="support-header">
+        <strong>Техподдержка</strong>
+        <button class="support-close" id="supportClose" type="button" aria-label="Закрыть">×</button>
+      </header>
+      <div class="support-messages" id="supportMessages"></div>
+      <p class="support-status" id="supportStatus">Нажмите кнопку ниже, чтобы отправить запрос.</p>
+      <div class="support-connect-row">
+        <button class="support-connect-btn" id="supportConnect" type="button">Связаться с техподдержкой</button>
+      </div>
+      <form class="support-chat-form" id="supportChatForm" autocomplete="off">
+        <input id="supportInput" type="text" maxlength="500" placeholder="Введите сообщение..." disabled>
+        <button type="submit" id="supportSend" disabled>Отправить</button>
+      </form>
+    </article>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/app.js"></script>
+</body>
+</html>

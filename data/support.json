@@ -1,0 +1,77 @@
+[
+  {
+    "id": 1772234062326,
+    "visitorId": "vmm5i2htk50wnh64v",
+    "visitorName": "Guest",
+    "status": "denied",
+    "createdAt": "2026-02-27T23:10:01.720Z",
+    "updatedAt": "2026-02-27T23:12:32.597Z",
+    "operatorChatId": 977753407,
+    "messages": [
+      {
+        "id": 1772234291711,
+        "from": "system",
+        "text": "Support request created. Please wait for approval.",
+        "createdAt": "2026-02-27T23:10:01.720Z"
+      },
+      {
+        "id": 1772234768506,
+        "from": "system",
+        "text": "Support denied this request.",
+        "createdAt": "2026-02-27T23:12:32.597Z"
+      }
+    ]
+  },
+  {
+    "id": 1772234873521,
+    "visitorId": "vmm5i2htk50wnh64v",
+    "visitorName": "Guest",
+    "status": "denied",
+    "createdAt": "2026-02-27T23:13:06.027Z",
+    "updatedAt": "2026-02-27T23:13:31.570Z",
+    "operatorChatId": 977753407,
+    "messages": [
+      {
+        "id": 1772234150826,
+        "from": "system",
+        "text": "Support request created. Please wait for approval.",
+        "createdAt": "2026-02-27T23:13:06.027Z"
+      },
+      {
+        "id": 1772234540466,
+        "from": "system",
+        "text": "Support approved this chat. You can start messaging.",
+        "createdAt": "2026-02-27T23:13:15.317Z"
+      },
+      {
+        "id": 1772234266367,
+        "from": "visitor",
+        "text": "Привет !",
+        "createdAt": "2026-02-27T23:13:27.044Z"
+      },
+      {
+        "id": 1772234956740,
+        "from": "system",
+        "text": "Support denied this request.",
+        "createdAt": "2026-02-27T23:13:31.570Z"
+      }
+    ]
+  },
+  {
+    "id": 1772235460444,
+    "visitorId": "vmm5ixvp8btm9f0bl",
+    "visitorName": "Guest",
+    "status": "pending",
+    "createdAt": "2026-02-27T23:29:28.651Z",
+    "updatedAt": "2026-02-27T23:29:28.651Z",
+    "operatorChatId": null,
+    "messages": [
+      {
+        "id": 1772235678969,
+        "from": "system",
+        "text": "Support request created. Please wait for approval.",
+        "createdAt": "2026-02-27T23:29:28.651Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,60 @@
+[
+  {
+    "id": 1772231845078,
+    "title": "HyperX III новый",
+    "description": "Хорошие наушники",
+    "seller": "ВладикПидорасик",
+    "sellerId": null,
+    "sellerTelegram": "RXSEND",
+    "managerName": "RXSEND",
+    "managerTelegram": "RXSEND",
+    "price": 12000,
+    "category": "Наушники",
+    "condition": "new",
+    "rating": 5,
+    "source": "telegram",
+    "imageUrl": "/uploads/1772231266718_716958.jpg",
+    "imageUrls": [
+      "/uploads/1772231266718_716958.jpg"
+    ],
+    "createdAt": "2026-02-27T22:27:48.518Z"
+  },
+  {
+    "id": 1772232044574,
+    "title": "Apple Watch новый",
+    "description": "часы",
+    "seller": "Профессор",
+    "sellerId": null,
+    "sellerTelegram": "RXSEND",
+    "managerName": "RXSEND",
+    "managerTelegram": "RXSEND",
+    "price": 25000,
+    "category": "Часы",
+    "condition": "new",
+    "rating": 5,
+    "source": "telegram",
+    "imageUrl": "/uploads/1772231394488_799114.jpg",
+    "imageUrls": [
+      "/uploads/1772231394488_799114.jpg"
+    ],
+    "createdAt": "2026-02-27T22:29:55.883Z"
+  },
+  {
+    "id": 1772236032082,
+    "title": "/back ds ds новый",
+    "description": "23",
+    "seller": "23",
+    "sellerId": null,
+    "sellerTelegram": "RXSEND",
+    "managerName": "RXSEND",
+    "managerTelegram": "RXSEND",
+    "price": 25000,
+    "category": "Телефоны",
+    "condition": "new",
+    "rating": 5,
+    "source": "telegram",
+    "imageUrl": "",
+    "imageUrls": [],
+    "createdAt": "2026-02-27T23:35:25.403Z"
+  }
+]
