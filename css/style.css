@@ -462,6 +462,8 @@ input {
 .product-main {
   padding: 12px;
   display: grid;
+  grid-template-columns: minmax(280px, 440px) minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
 }
 
@@ -469,13 +471,17 @@ input {
   border-radius: 10px;
   overflow: hidden;
   background: #11161d;
-  min-height: 280px;
+  height: clamp(260px, 46vh, 500px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .product-photo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
 }
 
@@ -753,6 +759,14 @@ input {
 
   .cards-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .product-main {
+    grid-template-columns: 1fr;
+  }
+
+  .product-photo {
+    height: clamp(240px, 42vh, 420px);
   }
 }
 
