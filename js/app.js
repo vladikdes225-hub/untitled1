@@ -8,6 +8,9 @@
   const SUPPORT_POLL_MS = 3000;
   const SUPPORT_VISITOR_KEY = "rxsend_support_visitor_id";
   const SUPPORT_TICKET_KEY = "rxsend_support_ticket_id";
+  const PHOTO_ZOOM_MIN = 1;
+  const PHOTO_ZOOM_MAX = 3;
+  const PHOTO_ZOOM_STEP = 0.25;
 
   const CATEGORY_META = [
     { name: "Все", icon: "🧭" },
@@ -42,6 +45,7 @@
     favorites: new Set(),
     activeAdId: null,
     activeImageIndex: 0,
+    photoZoom: 1,
     support: {
       panelOpen: false,
       visitorId: "",
@@ -297,6 +301,29 @@
     return state.ads.find((item) => Number(item.id) === Number(id)) || null;
   }
 
+  function clampNumber(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function applyPhotoZoom() {
+    const image = els.productPhoto.querySelector(".product-photo-image");
+    if (!image) {
+      els.productPhoto.classList.remove("is-zoomed");
+      return;
+    }
+    image.style.transform = `scale(${state.photoZoom.toFixed(2)})`;
+    els.productPhoto.classList.toggle("is-zoomed", state.photoZoom > PHOTO_ZOOM_MIN + 0.01);
+  }
+
+  function setPhotoZoom(value) {
+    state.photoZoom = clampNumber(Number(value) || PHOTO_ZOOM_MIN, PHOTO_ZOOM_MIN, PHOTO_ZOOM_MAX);
+    applyPhotoZoom();
+  }
+
+  function changePhotoZoom(delta) {
+    setPhotoZoom(state.photoZoom + delta);
+  }
+
   function renderOverlayPhoto(ad) {
     const images = getImages(ad);
     const list = images.length ? images : [""];
@@ -305,10 +332,22 @@
 
     if (current) {
       els.productPhoto.classList.remove("no-photo");
-      els.productPhoto.innerHTML = `<img src="${escapeHtml(current)}" alt="${escapeHtml(ad.title || "Фото")}">`;
+      els.productPhoto.innerHTML = `
+        <div class="product-photo-stage">
+          <img class="product-photo-image" src="${escapeHtml(current)}" alt="${escapeHtml(ad.title || "Фото")}">
+        </div>
+        <div class="photo-zoom-controls" aria-label="Photo zoom controls">
+          <button class="photo-zoom-btn" type="button" data-photo-zoom="out" aria-label="Zoom out">-</button>
+          <button class="photo-zoom-btn" type="button" data-photo-zoom="reset" aria-label="Reset zoom">100%</button>
+          <button class="photo-zoom-btn" type="button" data-photo-zoom="in" aria-label="Zoom in">+</button>
+        </div>
+      `;
+      setPhotoZoom(PHOTO_ZOOM_MIN);
     } else {
       els.productPhoto.classList.add("no-photo");
       els.productPhoto.textContent = "Фото отсутствует";
+      state.photoZoom = PHOTO_ZOOM_MIN;
+      els.productPhoto.classList.remove("is-zoomed");
     }
 
     if (!images.length) {
@@ -325,6 +364,7 @@
   function openOverlay(ad) {
     state.activeAdId = Number(ad.id);
     state.activeImageIndex = 0;
+    state.photoZoom = PHOTO_ZOOM_MIN;
 
     const sellerHandle = normalizeTelegram(ad.sellerTelegram) || TELEGRAM_FALLBACK;
     const managerHandle = normalizeTelegram(ad.managerTelegram) || TELEGRAM_FALLBACK;
@@ -353,6 +393,8 @@
   function closeOverlay() {
     state.activeAdId = null;
     state.activeImageIndex = 0;
+    state.photoZoom = PHOTO_ZOOM_MIN;
+    els.productPhoto.classList.remove("is-zoomed");
     els.overlay.classList.remove("is-open");
     els.overlay.setAttribute("aria-hidden", "true");
     document.body.classList.remove("overlay-open");
@@ -684,6 +726,18 @@
         closeOverlay();
         return;
       }
+      const zoomButton = event.target.closest("[data-photo-zoom]");
+      if (zoomButton) {
+        const action = zoomButton.getAttribute("data-photo-zoom");
+        if (action === "in") {
+          changePhotoZoom(PHOTO_ZOOM_STEP);
+        } else if (action === "out") {
+          changePhotoZoom(-PHOTO_ZOOM_STEP);
+        } else {
+          setPhotoZoom(PHOTO_ZOOM_MIN);
+        }
+        return;
+      }
       const thumb = event.target.closest("[data-gallery-index]");
       if (!thumb || state.activeAdId === null) {
         return;
@@ -696,9 +750,39 @@
       renderOverlayPhoto(ad);
     });
 
+    els.productPhoto.addEventListener("wheel", (event) => {
+      if (!els.productPhoto.querySelector(".product-photo-image")) {
+        return;
+      }
+      event.preventDefault();
+      changePhotoZoom(event.deltaY < 0 ? PHOTO_ZOOM_STEP : -PHOTO_ZOOM_STEP);
+    }, { passive: false });
+
+    els.productPhoto.addEventListener("dblclick", (event) => {
+      if (!els.productPhoto.querySelector(".product-photo-image")) {
+        return;
+      }
+      event.preventDefault();
+      setPhotoZoom(state.photoZoom > PHOTO_ZOOM_MIN + 0.01 ? PHOTO_ZOOM_MIN : 2);
+    });
+
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && els.overlay.classList.contains("is-open")) {
         closeOverlay();
+        return;
+      }
+      if (!els.overlay.classList.contains("is-open")) {
+        return;
+      }
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        changePhotoZoom(PHOTO_ZOOM_STEP);
+      } else if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        changePhotoZoom(-PHOTO_ZOOM_STEP);
+      } else if (event.key === "0") {
+        event.preventDefault();
+        setPhotoZoom(PHOTO_ZOOM_MIN);
       }
     });
 
@@ -740,3 +824,4 @@
   loadAds();
   initSupport();
 })();
+

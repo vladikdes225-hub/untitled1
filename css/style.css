@@ -463,15 +463,26 @@ input {
   padding: 12px;
   display: grid;
   grid-template-columns: minmax(280px, 440px) minmax(0, 1fr);
+  grid-template-areas:
+    "photo info"
+    "gallery info";
   align-items: start;
   gap: 12px;
 }
 
 .product-photo {
+  grid-area: photo;
+  position: relative;
   border-radius: 10px;
   overflow: hidden;
   background: #11161d;
   height: clamp(260px, 46vh, 500px);
+}
+
+.product-photo-stage {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -483,6 +494,15 @@ input {
   object-fit: contain;
   object-position: center;
   display: block;
+  transition: transform 0.18s ease;
+}
+
+.product-photo .product-photo-image {
+  cursor: zoom-in;
+}
+
+.product-photo.is-zoomed .product-photo-image {
+  cursor: zoom-out;
 }
 
 .product-photo.no-photo {
@@ -490,15 +510,19 @@ input {
 }
 
 .product-gallery {
+  grid-area: gallery;
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #10151d;
 }
 
 .gallery-thumb {
-  width: 86px;
-  height: 86px;
+  width: 78px;
+  height: 78px;
   border-radius: 8px;
   overflow: hidden;
   border: 2px solid transparent;
@@ -520,10 +544,39 @@ input {
 }
 
 .product-info {
+  grid-area: info;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel-2);
   padding: 12px;
+}
+
+.photo-zoom-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  gap: 6px;
+  background: rgba(10, 15, 23, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.photo-zoom-btn {
+  border: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  min-width: 34px;
+  height: 30px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.photo-zoom-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .product-price {
@@ -763,6 +816,10 @@ input {
 
   .product-main {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "photo"
+      "gallery"
+      "info";
   }
 
   .product-photo {
