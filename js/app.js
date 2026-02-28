@@ -8,6 +8,9 @@
   const SUPPORT_POLL_MS = 3000;
   const SUPPORT_VISITOR_KEY = "rxsend_support_visitor_id";
   const SUPPORT_TICKET_KEY = "rxsend_support_ticket_id";
+  const PRICE_MIN_LIMIT = 0;
+  const PRICE_MAX_LIMIT = 10_000_000;
+  const PRICE_STEP = 1000;
   const PHOTO_ZOOM_MIN = 1;
   const PHOTO_ZOOM_MAX = 3;
   const PHOTO_ZOOM_STEP = 0.25;
@@ -42,6 +45,13 @@
     sideMode: "market",
     category: "Все",
     sort: "recent",
+    filters: {
+      priceMin: PRICE_MIN_LIMIT,
+      priceMax: PRICE_MAX_LIMIT,
+      year: "all",
+      brand: "all",
+      model: ""
+    },
     favorites: new Set(),
     activeAdId: null,
     activeImageIndex: 0,
@@ -71,6 +81,15 @@
     chips: document.getElementById("chips"),
     cardsGrid: document.getElementById("cardsGrid"),
     resultCount: document.getElementById("resultCount"),
+    priceRangeLabel: document.getElementById("priceRangeLabel"),
+    priceMinRange: document.getElementById("priceMinRange"),
+    priceMaxRange: document.getElementById("priceMaxRange"),
+    priceMinInput: document.getElementById("priceMinInput"),
+    priceMaxInput: document.getElementById("priceMaxInput"),
+    yearSelect: document.getElementById("yearSelect"),
+    brandSelect: document.getElementById("brandSelect"),
+    modelInput: document.getElementById("modelInput"),
+    resetFiltersButton: document.getElementById("resetFiltersButton"),
     toast: document.getElementById("toast"),
     sideLinks: Array.from(document.querySelectorAll(".side-link")),
     overlay: document.getElementById("productOverlay"),
@@ -118,6 +137,123 @@
   function formatPrice(value) {
     const num = Number(value) || 0;
     return `${new Intl.NumberFormat("ru-RU").format(num)} ₽`;
+  }
+
+  function normalizePricePair(minValue, maxValue) {
+    let min = clampNumber(Math.round(Number(minValue) || PRICE_MIN_LIMIT), PRICE_MIN_LIMIT, PRICE_MAX_LIMIT);
+    let max = clampNumber(Math.round(Number(maxValue) || PRICE_MAX_LIMIT), PRICE_MIN_LIMIT, PRICE_MAX_LIMIT);
+    if (min > max) {
+      const tmp = min;
+      min = max;
+      max = tmp;
+    }
+    return { min, max };
+  }
+
+  function getAdYear(ad) {
+    const explicitYear = Number(ad && ad.year);
+    if (Number.isFinite(explicitYear) && explicitYear >= 1970 && explicitYear <= 2100) {
+      return explicitYear;
+    }
+    const title = String((ad && ad.title) || "");
+    const description = String((ad && ad.description) || "");
+    const source = `${title} ${description}`;
+    const match = source.match(/(?:19|20)\d{2}/);
+    if (!match) {
+      return null;
+    }
+    const year = Number(match[0]);
+    return Number.isFinite(year) ? year : null;
+  }
+
+  function getAdBrand(ad) {
+    const title = String((ad && ad.title) || "").trim();
+    if (!title) {
+      return "";
+    }
+    const first = title.split(/\s+/)[0] || "";
+    return first.slice(0, 30);
+  }
+
+  function updatePriceFilterUi() {
+    const min = state.filters.priceMin;
+    const max = state.filters.priceMax;
+    if (els.priceMinRange) {
+      els.priceMinRange.value = String(min);
+      els.priceMinRange.min = String(PRICE_MIN_LIMIT);
+      els.priceMinRange.max = String(PRICE_MAX_LIMIT);
+      els.priceMinRange.step = String(PRICE_STEP);
+    }
+    if (els.priceMaxRange) {
+      els.priceMaxRange.value = String(max);
+      els.priceMaxRange.min = String(PRICE_MIN_LIMIT);
+      els.priceMaxRange.max = String(PRICE_MAX_LIMIT);
+      els.priceMaxRange.step = String(PRICE_STEP);
+    }
+    if (els.priceMinInput) {
+      els.priceMinInput.value = String(min);
+    }
+    if (els.priceMaxInput) {
+      els.priceMaxInput.value = String(max);
+    }
+    if (els.priceRangeLabel) {
+      els.priceRangeLabel.textContent = `${formatPrice(min)} — ${formatPrice(max)}`;
+    }
+  }
+
+  function setPriceFilter(minValue, maxValue) {
+    const normalized = normalizePricePair(minValue, maxValue);
+    state.filters.priceMin = normalized.min;
+    state.filters.priceMax = normalized.max;
+    updatePriceFilterUi();
+  }
+
+  function buildYearOptions(ads) {
+    const years = new Set();
+    for (const ad of ads) {
+      const year = getAdYear(ad);
+      if (year) {
+        years.add(year);
+      }
+    }
+    return [...years].sort((a, b) => b - a);
+  }
+
+  function buildBrandOptions(ads) {
+    const brands = new Set();
+    for (const ad of ads) {
+      const brand = getAdBrand(ad);
+      if (brand) {
+        brands.add(brand);
+      }
+    }
+    return [...brands].sort((a, b) => a.localeCompare(b, "ru"));
+  }
+
+  function renderFilterOptions() {
+    if (els.yearSelect) {
+      const years = buildYearOptions(state.ads);
+      els.yearSelect.innerHTML = `<option value="all">Все годы</option>${years
+        .map((year) => `<option value="${year}">${year}</option>`)
+        .join("")}`;
+      els.yearSelect.value = state.filters.year;
+      if (els.yearSelect.value !== state.filters.year) {
+        state.filters.year = "all";
+        els.yearSelect.value = "all";
+      }
+    }
+
+    if (els.brandSelect) {
+      const brands = buildBrandOptions(state.ads);
+      els.brandSelect.innerHTML = `<option value="all">Любой бренд</option>${brands
+        .map((brand) => `<option value="${escapeHtml(brand)}">${escapeHtml(brand)}</option>`)
+        .join("")}`;
+      els.brandSelect.value = state.filters.brand;
+      if (els.brandSelect.value !== state.filters.brand) {
+        state.filters.brand = "all";
+        els.brandSelect.value = "all";
+      }
+    }
   }
 
   function formatDate(iso) {
@@ -200,6 +336,11 @@
 
   function filterAds() {
     const query = state.query.trim().toLowerCase();
+    const modelQuery = state.filters.model.trim().toLowerCase();
+    const filterYear = state.filters.year;
+    const filterBrand = state.filters.brand;
+    const minPrice = Number(state.filters.priceMin) || PRICE_MIN_LIMIT;
+    const maxPrice = Number(state.filters.priceMax) || PRICE_MAX_LIMIT;
     let result = [...state.ads];
 
     if (state.sideMode === "only-new") {
@@ -224,6 +365,26 @@
           .join(" ")
           .toLowerCase();
         return haystack.includes(query);
+      });
+    }
+
+    result = result.filter((item) => {
+      const price = Number(item.price) || 0;
+      return price >= minPrice && price <= maxPrice;
+    });
+
+    if (filterYear !== "all") {
+      result = result.filter((item) => String(getAdYear(item) || "") === String(filterYear));
+    }
+
+    if (filterBrand !== "all") {
+      result = result.filter((item) => getAdBrand(item) === filterBrand);
+    }
+
+    if (modelQuery) {
+      result = result.filter((item) => {
+        const source = `${item.title || ""} ${item.description || ""}`.toLowerCase();
+        return source.includes(modelQuery);
       });
     }
 
@@ -723,9 +884,13 @@
         data = await fetchJson(`${API_FALLBACK_BASE}/api/ads`);
       }
       state.ads = Array.isArray(data.items) ? data.items : [];
+      renderFilterOptions();
+      setPriceFilter(state.filters.priceMin, state.filters.priceMax);
       render();
     } catch (error) {
       state.ads = [];
+      renderFilterOptions();
+      setPriceFilter(state.filters.priceMin, state.filters.priceMax);
       render();
       showToast(`API недоступно: ${error.message}`);
     }
@@ -753,6 +918,77 @@
       button.addEventListener("click", () => {
         state.sideMode = button.dataset.mode || "market";
         render();
+      });
+    }
+
+    if (els.priceMinRange) {
+      els.priceMinRange.addEventListener("input", (event) => {
+        setPriceFilter(event.target.value, state.filters.priceMax);
+        renderCards();
+      });
+    }
+
+    if (els.priceMaxRange) {
+      els.priceMaxRange.addEventListener("input", (event) => {
+        setPriceFilter(state.filters.priceMin, event.target.value);
+        renderCards();
+      });
+    }
+
+    const commitPriceInputs = () => {
+      const min = els.priceMinInput ? els.priceMinInput.value : state.filters.priceMin;
+      const max = els.priceMaxInput ? els.priceMaxInput.value : state.filters.priceMax;
+      setPriceFilter(min, max);
+      renderCards();
+    };
+
+    if (els.priceMinInput) {
+      els.priceMinInput.addEventListener("change", commitPriceInputs);
+      els.priceMinInput.addEventListener("blur", commitPriceInputs);
+    }
+
+    if (els.priceMaxInput) {
+      els.priceMaxInput.addEventListener("change", commitPriceInputs);
+      els.priceMaxInput.addEventListener("blur", commitPriceInputs);
+    }
+
+    if (els.yearSelect) {
+      els.yearSelect.addEventListener("change", (event) => {
+        state.filters.year = event.target.value || "all";
+        renderCards();
+      });
+    }
+
+    if (els.brandSelect) {
+      els.brandSelect.addEventListener("change", (event) => {
+        state.filters.brand = event.target.value || "all";
+        renderCards();
+      });
+    }
+
+    if (els.modelInput) {
+      els.modelInput.addEventListener("input", (event) => {
+        state.filters.model = event.target.value || "";
+        renderCards();
+      });
+    }
+
+    if (els.resetFiltersButton) {
+      els.resetFiltersButton.addEventListener("click", () => {
+        state.filters.year = "all";
+        state.filters.brand = "all";
+        state.filters.model = "";
+        setPriceFilter(PRICE_MIN_LIMIT, PRICE_MAX_LIMIT);
+        if (els.yearSelect) {
+          els.yearSelect.value = "all";
+        }
+        if (els.brandSelect) {
+          els.brandSelect.value = "all";
+        }
+        if (els.modelInput) {
+          els.modelInput.value = "";
+        }
+        renderCards();
       });
     }
 

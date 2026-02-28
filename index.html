@@ -33,6 +33,55 @@
           <span class="icon">&#x267B;&#xFE0F;</span> Только Б/У
         </button>
       </nav>
+      <section class="filters-panel" aria-label="Фильтры">
+        <h2 class="filters-title">Фильтры</h2>
+
+        <div class="filter-group">
+          <p class="filter-label">Цена</p>
+          <p class="filter-range-value" id="priceRangeLabel">0 ₽ — 10 000 000 ₽</p>
+          <div class="price-slider-wrap">
+            <input id="priceMinRange" class="price-range range-min" type="range" min="0" max="10000000" step="1000" value="0" aria-label="Минимальная цена">
+            <input id="priceMaxRange" class="price-range range-max" type="range" min="0" max="10000000" step="1000" value="10000000" aria-label="Максимальная цена">
+          </div>
+          <div class="price-inputs">
+            <label class="filter-field">
+              <span>От</span>
+              <input id="priceMinInput" type="number" min="0" max="10000000" step="1000" value="0" inputmode="numeric">
+            </label>
+            <label class="filter-field">
+              <span>До</span>
+              <input id="priceMaxInput" type="number" min="0" max="10000000" step="1000" value="10000000" inputmode="numeric">
+            </label>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-field">
+            <span>Год</span>
+            <select id="yearSelect">
+              <option value="all">Все годы</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-field">
+            <span>Бренд</span>
+            <select id="brandSelect">
+              <option value="all">Любой бренд</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-field">
+            <span>Модель устройства</span>
+            <input id="modelInput" type="text" placeholder="Например: iPhone 15 Pro">
+          </label>
+        </div>
+
+        <button class="filters-reset-btn" id="resetFiltersButton" type="button">Сбросить фильтры</button>
+      </section>
     </aside>
 
     <main class="content">
