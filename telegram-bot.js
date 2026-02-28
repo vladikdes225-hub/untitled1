@@ -3,8 +3,9 @@ const path = require("path");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_API_TOKEN = String(process.env.ADMIN_API_TOKEN || "").trim();
-const ADS_API_BASE = process.env.ADS_API_BASE || "http://localhost:3001";
-const SUPPORT_API_BASE = process.env.SUPPORT_API_BASE || ADS_API_BASE;
+const LOCAL_API_BASE = `http://127.0.0.1:${Number(process.env.PORT || 3001)}`;
+const ADS_API_BASE = String(process.env.ADS_API_BASE || LOCAL_API_BASE).trim().replace(/\/+$/, "");
+const SUPPORT_API_BASE = String(process.env.SUPPORT_API_BASE || ADS_API_BASE).trim().replace(/\/+$/, "");
 const TELEGRAM_API_BASE = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : "";
 const TELEGRAM_FILE_BASE = BOT_TOKEN ? `https://api.telegram.org/file/bot${BOT_TOKEN}` : "";
 const UPLOADS_DIR = path.join(__dirname, "uploads");
@@ -135,8 +136,32 @@ function withAdminHeaders(headers = {}) {
   };
 }
 
+function apiUrl(base, endpoint) {
+  return `${base}${endpoint}`;
+}
+
+async function fetchWithFallback(base, endpoint, options = {}) {
+  const primaryUrl = apiUrl(base, endpoint);
+  try {
+    return await fetch(primaryUrl, options);
+  } catch (primaryError) {
+    if (base === LOCAL_API_BASE) {
+      throw new Error(`Network error for ${primaryUrl}: ${primaryError.message}`);
+    }
+
+    const localUrl = apiUrl(LOCAL_API_BASE, endpoint);
+    try {
+      return await fetch(localUrl, options);
+    } catch (localError) {
+      throw new Error(
+        `Network error for ${primaryUrl}: ${primaryError.message}; local fallback ${localUrl}: ${localError.message}`
+      );
+    }
+  }
+}
+
 async function fetchAdsFromSite() {
-  const response = await fetch(`${ADS_API_BASE}/api/ads`, {
+  const response = await fetchWithFallback(ADS_API_BASE, "/api/ads", {
     headers: withAdminHeaders()
   });
   const data = await response.json().catch(() => ({}));
@@ -147,7 +172,7 @@ async function fetchAdsFromSite() {
 }
 
 async function postAdToSite(payload) {
-  const response = await fetch(`${ADS_API_BASE}/api/ads`, {
+  const response = await fetchWithFallback(ADS_API_BASE, "/api/ads", {
     method: "POST",
     headers: withAdminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload)
@@ -162,7 +187,7 @@ async function postAdToSite(payload) {
 }
 
 async function deleteAdFromSite(id) {
-  const response = await fetch(`${ADS_API_BASE}/api/ads/${id}`, {
+  const response = await fetchWithFallback(ADS_API_BASE, `/api/ads/${id}`, {
     method: "DELETE",
     headers: withAdminHeaders()
   });
@@ -174,7 +199,7 @@ async function deleteAdFromSite(id) {
 
 async function fetchSupportRequests(status = "") {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  const response = await fetch(`${SUPPORT_API_BASE}/api/support/requests${query}`, {
+  const response = await fetchWithFallback(SUPPORT_API_BASE, `/api/support/requests${query}`, {
     headers: withAdminHeaders()
   });
   const data = await response.json().catch(() => ({}));
@@ -185,9 +210,13 @@ async function fetchSupportRequests(status = "") {
 }
 
 async function fetchSupportTicket(id, after = 0) {
-  const response = await fetch(`${SUPPORT_API_BASE}/api/support/requests/${id}?after=${Number(after) || 0}`, {
+  const response = await fetchWithFallback(
+    SUPPORT_API_BASE,
+    `/api/support/requests/${id}?after=${Number(after) || 0}`,
+    {
     headers: withAdminHeaders()
-  });
+    }
+  );
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error || `Support API HTTP ${response.status}`);
@@ -199,7 +228,7 @@ async function fetchSupportTicket(id, after = 0) {
 }
 
 async function postSupportDecision(id, decision, operatorChatId) {
-  const response = await fetch(`${SUPPORT_API_BASE}/api/support/requests/${id}/decision`, {
+  const response = await fetchWithFallback(SUPPORT_API_BASE, `/api/support/requests/${id}/decision`, {
     method: "POST",
     headers: withAdminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ decision, operatorChatId })
@@ -212,7 +241,7 @@ async function postSupportDecision(id, decision, operatorChatId) {
 }
 
 async function postSupportOperatorMessage(id, text, operatorChatId) {
-  const response = await fetch(`${SUPPORT_API_BASE}/api/support/requests/${id}/message`, {
+  const response = await fetchWithFallback(SUPPORT_API_BASE, `/api/support/requests/${id}/message`, {
     method: "POST",
     headers: withAdminHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
