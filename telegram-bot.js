@@ -276,7 +276,8 @@ function startSession(chatId) {
   sessions.set(chatId, {
     step: "category",
     data: {
-      imageUrls: []
+      imageUrls: [],
+      year: null
     }
   });
 }
@@ -353,6 +354,9 @@ function getPrompt(step) {
   }
   if (step === "model") {
     return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043C\u043E\u0434\u0435\u043B\u044C \u0442\u043E\u0432\u0430\u0440\u0430.";
+  }
+  if (step === "year") {
+    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0433\u043E\u0434 \u0432\u044B\u043F\u0443\u0441\u043A\u0430 (1970-2100) \u0438\u043B\u0438 '-' \u0435\u0441\u043B\u0438 \u043D\u0435 \u043D\u0443\u0436\u0435\u043D.";
   }
   if (step === "memory") {
     return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043F\u0430\u043C\u044F\u0442\u044C/\u043E\u0431\u044A\u0435\u043C (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: 128GB) \u0438\u043B\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 '-' \u0435\u0441\u043B\u0438 \u043D\u0435 \u043D\u0443\u0436\u043D\u043E.";
@@ -655,6 +659,7 @@ async function sendCatalog(chatId, options, messageId = null) {
 
 function adDetailsText(item) {
   const conditionLabel = item.condition === "new" ? "\u041D\u043E\u0432\u044B\u0439" : "\u0411/\u0423";
+  const yearLabel = Number.isFinite(Number(item.year)) ? String(Math.round(Number(item.year))) : "\u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D";
   const created = item.createdAt ? new Date(item.createdAt).toLocaleString("ru-RU") : "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E";
   return [
     `#${item.id} ${item.title}`,
@@ -662,6 +667,7 @@ function adDetailsText(item) {
     `\u041F\u0440\u043E\u0434\u0430\u0432\u0435\u0446: ${item.seller}`,
     `\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F: ${item.category}`,
     `\u0421\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435: ${conditionLabel}`,
+    `\u0413\u043E\u0434: ${yearLabel}`,
     `\u0414\u0430\u0442\u0430: ${created}`,
     "",
     `${item.description || "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u043E."}`
@@ -705,6 +711,7 @@ async function finalizeSession(chatId) {
     managerName: DEFAULT_MANAGER_NAME,
     managerTelegram: DEFAULT_MANAGER_TELEGRAM,
     price: session.data.price,
+    year: session.data.year,
     condition: session.data.condition,
     category: session.data.category,
     source: "telegram",
@@ -715,7 +722,7 @@ async function finalizeSession(chatId) {
     const item = await postAdToSite(payload);
     await sendMessage(
       chatId,
-      `\u041E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u043D\u043E.\nID: ${item.id}\n${item.title}\n\u0426\u0435\u043D\u0430: ${item.price} \u20BD\n\u0424\u043E\u0442\u043E: ${session.data.imageUrls.length}`
+      `\u041E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u043D\u043E.\nID: ${item.id}\n${item.title}\n\u0426\u0435\u043D\u0430: ${item.price} \u20BD\n\u0413\u043E\u0434: ${item.year || "-"}\n\u0424\u043E\u0442\u043E: ${session.data.imageUrls.length}`
     );
   } catch (error) {
     await sendMessage(chatId, `\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438: ${error.message}`);
@@ -759,6 +766,24 @@ async function handleCreateSessionMessage(message) {
       return;
     }
     session.data.model = text;
+    session.step = "year";
+    await askStep(chatId, session.step);
+    return;
+  }
+
+  if (session.step === "year") {
+    if (text === "-") {
+      session.data.year = null;
+      session.step = "memory";
+      await askStep(chatId, session.step);
+      return;
+    }
+    const year = Number(text.replace(/\s+/g, ""));
+    if (!Number.isFinite(year) || year < 1970 || year > 2100) {
+      await sendMessage(chatId, "\u0413\u043E\u0434 \u0434\u043E\u043B\u0436\u0435\u043D \u0431\u044B\u0442\u044C \u0432 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0435 1970-2100 \u0438\u043B\u0438 '-'.");
+      return;
+    }
+    session.data.year = Math.round(year);
     session.step = "memory";
     await askStep(chatId, session.step);
     return;

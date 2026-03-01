@@ -9,7 +9,7 @@
   const SUPPORT_VISITOR_KEY = "rxsend_support_visitor_id";
   const SUPPORT_TICKET_KEY = "rxsend_support_ticket_id";
   const PRICE_MIN_LIMIT = 0;
-  const PRICE_MAX_LIMIT = 10_000_000;
+  const PRICE_MAX_LIMIT = 2_000_000;
   const PRICE_STEP = 1000;
   const PHOTO_ZOOM_MIN = 1;
   const PHOTO_ZOOM_MAX = 3;

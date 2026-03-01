@@ -692,6 +692,10 @@ function validateAdPayload(payload) {
   const managerName = String(payload.managerName || DEFAULT_MANAGER.name).trim() || DEFAULT_MANAGER.name;
   const managerTelegram = normalizeTelegram(payload.managerTelegram || DEFAULT_MANAGER.telegram);
   const price = Number(payload.price);
+  const yearRaw = payload.year;
+  const year = yearRaw === null || typeof yearRaw === "undefined" || String(yearRaw).trim() === ""
+    ? null
+    : Number(yearRaw);
   const category = String(payload.category || "Телефоны").trim() || "Телефоны";
   const source = String(payload.source || "web").trim() || "web";
   const imageUrlsRaw = Array.isArray(payload.imageUrls)
@@ -713,6 +717,9 @@ function validateAdPayload(payload) {
   if (!Number.isFinite(price) || price < 1) {
     return { ok: false, error: "Поле price должно быть числом больше 0." };
   }
+  if (year !== null && (!Number.isFinite(year) || year < 1970 || year > 2100)) {
+    return { ok: false, error: "Поле year должно быть годом от 1970 до 2100." };
+  }
   if (seller.length < 2) {
     return { ok: false, error: "Поле seller должно содержать минимум 2 символа." };
   }
@@ -729,6 +736,7 @@ function validateAdPayload(payload) {
       managerName: managerName.slice(0, 60),
       managerTelegram,
       price: Math.round(price),
+      year: year === null ? null : Math.round(year),
       category: category.slice(0, 50),
       condition,
       rating: Number.isFinite(Number(payload.rating)) ? Number(payload.rating) : 5,
