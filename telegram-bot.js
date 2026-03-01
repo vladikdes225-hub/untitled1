@@ -16,18 +16,233 @@ const AUTH_PASSWORD = String(process.env.BOT_AUTH_PASSWORD || "").trim();
 const AUTH_MAX_FAILS = Number(process.env.BOT_AUTH_MAX_FAILS || 5);
 const AUTH_LOCK_MS = Number(process.env.BOT_AUTH_LOCK_MS || 5 * 60 * 1000);
 
-const CATEGORIES = [
-  "\u0412\u0441\u0435",
-  "\u0422\u0435\u043B\u0435\u0444\u043E\u043D\u044B",
-  "\u041D\u0430\u0443\u0448\u043D\u0438\u043A\u0438",
-  "\u0427\u0430\u0441\u044B",
-  "\u041F\u043B\u0430\u043D\u0448\u0435\u0442\u044B",
-  "\u041D\u043E\u0443\u0442\u0431\u0443\u043A\u0438",
-  "\u041A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u044B",
-  "\u041A\u043E\u043D\u0441\u043E\u043B\u0438",
-  "\u041A\u043E\u043B\u043E\u043D\u043A\u0438",
-  "\u0411\u0435\u0437 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438"
+const CATEGORY_ITEMS = [
+  { id: "all", ru: "Все", pl: "Wszystkie" },
+  { id: "phones", ru: "Телефоны", pl: "Telefony" },
+  { id: "headphones", ru: "Наушники", pl: "Sluchawki" },
+  { id: "watches", ru: "Часы", pl: "Zegarki" },
+  { id: "tablets", ru: "Планшеты", pl: "Tablety" },
+  { id: "laptops", ru: "Ноутбуки", pl: "Laptopy" },
+  { id: "computers", ru: "Компьютеры", pl: "Komputery" },
+  { id: "consoles", ru: "Консоли", pl: "Konsole" },
+  { id: "speakers", ru: "Колонки", pl: "Glosniki" },
+  { id: "uncat", ru: "Без категории", pl: "Bez kategorii" }
 ];
+
+const I18N = {
+  pl: {
+    menu: "Menu",
+    mainMenu: "Menu glowne",
+    catalog: "Katalog",
+    delete: "Usuwanie",
+    deny: "Odrzuc",
+    add: "Dodaj",
+    logout: "Wyloguj",
+    support: "Wsparcie",
+    approve: "Zatwierdz",
+    refresh: "Odswiez",
+    categories: "Kategorie",
+    back: "Wroc",
+    open: "Otworz",
+    close: "Zamknij",
+    done: "Gotowe",
+    chooseCatalogMode: "Wybierz katalog ({mode})",
+    modeDelete: "tryb usuwania",
+    modeCatalog: "tryb przegladu",
+    supportQueue: "Kolejka wsparcia",
+    pending: "Oczekuje",
+    approved: "Zatwierdzone",
+    guest: "Gosc",
+    dialog: "Dialog",
+    status: "Status",
+    replyModeOn: "Tryb odpowiedzi wlaczony: wyslij tekst, aby odpisac klientowi.",
+    useLeave: "Uzyj /leave aby wyjsc z tego trybu.",
+    client: "Klient",
+    you: "Ty",
+    system: "System",
+    notFoundDialog: "Dialog #{id} nie znaleziony. Tryb odpowiedzi wylaczony.",
+    deniedDialog: "Dialog #{id} odrzucony. Tryb odpowiedzi wylaczony.",
+    syncError: "Blad synchronizacji #{id}: {message}",
+    categoryEmpty: "Katalog \"{category}\" jest pusty.",
+    catalogTitle: "Katalog: {category}",
+    page: "Strona {current}/{total}",
+    itemNotFound: "Towar nie znaleziony lub juz usuniety.",
+    deleted: "Ogloszenie usuniete",
+    published: "Ogloszenie opublikowane.\nID: {id}\n{title}\nCena: {price} ₽\nRok: {year}\nZdjecia: {photos}",
+    publishError: "Blad publikacji: {message}",
+    chooseCategoryBtn: "Wybierz kategorie przyciskiem.",
+    shortBrand: "Marka jest za krotka.",
+    shortModel: "Model jest za krotki.",
+    invalidYear: "Rok musi byc w zakresie 1970-2100 lub '-'.",
+    invalidCondition: "Wpisz tylko Nowy lub Uzywany.",
+    invalidPrice: "Cena musi byc liczba wieksza od 0.",
+    shortSeller: "Imie sprzedawcy jest za krotkie.",
+    photoInstruction: "Wyslij zdjecie (mozna kilka) i potem /done, albo '-' bez zdjec.",
+    photoAdded: "Zdjecie dodane ({count}). Wyslij kolejne lub /done.",
+    photoUploadError: "Blad przesylania zdjecia: {message}",
+    startText: "Bot zarzadzania katalogiem.\nKomendy:\n/start\n/login\n/logout\n/newad\n/catalog\n/delete\n/support\n/leave\n/done\n/cancel\n/lang",
+    accessLockedStart: "Dostep do bota jest chroniony haslem. Wyslij /login.",
+    botProtected: "Bot jest chroniony. Wyslij /login, potem haslo.",
+    accessClosed: "Dostep zamkniety. Aby wejsc, wyslij /login.",
+    alreadyAuthorized: "Juz jestes zalogowany.",
+    tooManyErrorsRetry: "Za duzo bledow. Sprobuj ponownie za {seconds} s.",
+    enterPassword: "Wpisz haslo jedna wiadomoscia.",
+    accessOpened: "Dostep otwarty. Dostepne komendy: /support /newad /catalog /delete /logout /lang",
+    tooManyErrorsLocked: "Za duzo bledow. Blokada na {seconds} s.",
+    invalidPassword: "Nieprawidlowe haslo. Pozostalo prob: {attempts}.",
+    canceled: "Biezace wprowadzanie anulowane.",
+    creatingAd: "Rozpoczynamy tworzenie ogloszenia.",
+    replyModeOff: "Tryb odpowiedzi wylaczony (#{id}).",
+    replyModeNotActive: "Tryb odpowiedzi nieaktywny.",
+    replySent: "Odpowiedz wyslana do dialogu #{id}.",
+    sendError: "Blad wysylki: {message}",
+    useNewAdForPhoto: "Aby opublikowac zdjecie, uzyj /newad.",
+    fallbackHelp: "Uzyj /menu, /support, /newad, /catalog, /delete, /logout lub /lang.",
+    passwordRequired: "Wymagane haslo",
+    noAccessButtons: "Dostep do przyciskow zamkniety. Wyslij /login i haslo.",
+    creatingAdCallback: "Tworzenie ogloszenia",
+    loggedOut: "Wylogowano",
+    invalidId: "Niepoprawny ID",
+    requestApproved: "Zgloszenie zatwierdzone",
+    requestDenied: "Zgloszenie odrzucone",
+    dialogOpened: "Dialog otwarty",
+    callbackError: "Blad",
+    genericError: "Blad: {message}",
+    langChoose: "Wybierz jezyk:",
+    langSet: "Jezyk ustawiony: {lang}",
+    langPL: "Polski",
+    langRU: "Rosyjski",
+    promptCategory: "Wybierz kategorie towaru.",
+    promptBrand: "Wpisz marke towaru (np. Apple, Sony).",
+    promptModel: "Wpisz model towaru.",
+    promptYear: "Wpisz rok produkcji (1970-2100) lub '-' jesli pominac.",
+    promptMemory: "Wpisz pamiec/pojemnosc (np. 128GB) lub '-' jesli pominac.",
+    promptCondition: "Wpisz stan: Nowy lub Uzywany.",
+    promptPrice: "Wpisz cene w rublach (tylko liczba).",
+    promptSeller: "Wpisz imie sprzedawcy.",
+    promptDescription: "Wpisz opis (lub '-').",
+    promptPhoto: "Wyslij jedno lub kilka zdjec. Gdy skonczycz, wyslij /done. Aby publikowac bez zdjec, wyslij '-'.",
+    conditionNew: "Nowy",
+    conditionUsed: "Uzywany",
+    conditionLabelNew: "Nowy",
+    conditionLabelUsed: "Uzywany",
+    dateUnknown: "nieznana",
+    descriptionFallback: "Opis nie podany.",
+    yearFallback: "nie podano",
+    labelPrice: "Cena",
+    labelSeller: "Sprzedawca",
+    labelCategory: "Kategoria",
+    labelCondition: "Stan",
+    labelYear: "Rok",
+    labelDate: "Data"
+  },
+  ru: {
+    menu: "Меню",
+    mainMenu: "Главное меню",
+    catalog: "Каталог",
+    delete: "Удаление",
+    deny: "Отклонить",
+    add: "Добавить",
+    logout: "Выйти",
+    support: "Техподдержка",
+    approve: "Одобрить",
+    refresh: "Обновить",
+    categories: "Категории",
+    back: "Назад",
+    open: "Открыть",
+    close: "Закрыть",
+    done: "Готово",
+    chooseCatalogMode: "Выберите каталог ({mode})",
+    modeDelete: "режим удаления",
+    modeCatalog: "режим просмотра",
+    supportQueue: "Очередь поддержки",
+    pending: "Ожидают",
+    approved: "Одобрены",
+    guest: "Гость",
+    dialog: "Диалог",
+    status: "Статус",
+    replyModeOn: "Режим ответа включен: отправьте текст, чтобы ответить клиенту.",
+    useLeave: "Используйте /leave, чтобы выйти из режима.",
+    client: "Клиент",
+    you: "Вы",
+    system: "Система",
+    notFoundDialog: "Диалог #{id} не найден. Режим ответа выключен.",
+    deniedDialog: "Диалог #{id} отклонен. Режим ответа выключен.",
+    syncError: "Ошибка синхронизации #{id}: {message}",
+    categoryEmpty: "Каталог \"{category}\" пуст.",
+    catalogTitle: "Каталог: {category}",
+    page: "Страница {current}/{total}",
+    itemNotFound: "Товар не найден или уже удален.",
+    deleted: "Объявление удалено",
+    published: "Объявление опубликовано.\nID: {id}\n{title}\nЦена: {price} ₽\nГод: {year}\nФото: {photos}",
+    publishError: "Ошибка публикации: {message}",
+    chooseCategoryBtn: "Выберите категорию кнопкой.",
+    shortBrand: "Бренд слишком короткий.",
+    shortModel: "Модель слишком короткая.",
+    invalidYear: "Год должен быть в диапазоне 1970-2100 или '-'.",
+    invalidCondition: "Введите только Новый или Б/У.",
+    invalidPrice: "Цена должна быть числом больше 0.",
+    shortSeller: "Имя продавца слишком короткое.",
+    photoInstruction: "Отправьте фото (можно несколько) и потом /done, либо '-' без фото.",
+    photoAdded: "Фото добавлено ({count}). Отправьте ещё фото или /done.",
+    photoUploadError: "Ошибка загрузки фото: {message}",
+    startText: "Бот управления каталогом.\nКоманды:\n/start\n/login\n/logout\n/newad\n/catalog\n/delete\n/support\n/leave\n/done\n/cancel\n/lang",
+    accessLockedStart: "Доступ к боту закрыт паролем. Отправьте /login.",
+    botProtected: "Бот защищен. Отправьте /login, затем пароль.",
+    accessClosed: "Доступ закрыт. Для входа отправьте /login.",
+    alreadyAuthorized: "Вы уже авторизованы.",
+    tooManyErrorsRetry: "Слишком много ошибок. Повторите через {seconds} сек.",
+    enterPassword: "Введите пароль одним сообщением.",
+    accessOpened: "Доступ открыт. Доступные команды: /support /newad /catalog /delete /logout /lang",
+    tooManyErrorsLocked: "Слишком много ошибок. Блокировка на {seconds} сек.",
+    invalidPassword: "Неверный пароль. Осталось попыток: {attempts}.",
+    canceled: "Текущий ввод отменен.",
+    creatingAd: "Начинаем создание объявления.",
+    replyModeOff: "Режим ответа отключен (#{id}).",
+    replyModeNotActive: "Режим ответа не активен.",
+    replySent: "Ответ отправлен в диалог #{id}.",
+    sendError: "Ошибка отправки: {message}",
+    useNewAdForPhoto: "Для публикации фото используйте /newad.",
+    fallbackHelp: "Используйте /menu, /support, /newad, /catalog, /delete, /logout или /lang.",
+    passwordRequired: "Нужен пароль",
+    noAccessButtons: "Доступ к кнопкам закрыт. Отправьте /login и введите пароль.",
+    creatingAdCallback: "Создание объявления",
+    loggedOut: "Выход выполнен",
+    invalidId: "Некорректный ID",
+    requestApproved: "Запрос одобрен",
+    requestDenied: "Запрос отклонен",
+    dialogOpened: "Диалог открыт",
+    callbackError: "Ошибка",
+    genericError: "Ошибка: {message}",
+    langChoose: "Выберите язык:",
+    langSet: "Язык установлен: {lang}",
+    langPL: "Польский",
+    langRU: "Русский",
+    promptCategory: "Выберите категорию товара.",
+    promptBrand: "Введите бренд товара (например: Apple, Sony).",
+    promptModel: "Введите модель товара.",
+    promptYear: "Введите год выпуска (1970-2100) или '-' если не нужен.",
+    promptMemory: "Введите память/объем (например: 128GB) или '-' если не нужно.",
+    promptCondition: "Введите состояние: Новый или Б/У.",
+    promptPrice: "Введите цену в рублях (только число).",
+    promptSeller: "Введите имя продавца.",
+    promptDescription: "Введите описание (или '-').",
+    promptPhoto: "Отправьте одно или несколько фото. Когда закончите, отправьте /done. Для публикации без фото отправьте '-'.",
+    conditionNew: "Новый",
+    conditionUsed: "Б/У",
+    conditionLabelNew: "Новый",
+    conditionLabelUsed: "Б/У",
+    dateUnknown: "неизвестно",
+    descriptionFallback: "Описание не указано.",
+    yearFallback: "не указан",
+    labelPrice: "Цена",
+    labelSeller: "Продавец",
+    labelCategory: "Категория",
+    labelCondition: "Состояние",
+    labelYear: "Год",
+    labelDate: "Дата"
+  }
+};
 
 if (!BOT_TOKEN) {
   console.error("Missing TELEGRAM_BOT_TOKEN environment variable.");
@@ -48,6 +263,7 @@ const sessions = new Map();
 const authState = new Map();
 const supportReplyMode = new Map();
 const supportCursorByChat = new Map();
+const chatLanguage = new Map();
 let lastSupportSyncAt = 0;
 
 function sleep(ms) {
@@ -63,26 +279,53 @@ function truncate(text, max) {
 
 function normalizeCondition(text) {
   const value = text.trim().toLowerCase();
-  if (["\u043D\u043E\u0432\u044B\u0439", "new", "n"].includes(value)) {
+  if (["\u043D\u043E\u0432\u044B\u0439", "new", "n", "nowy"].includes(value)) {
     return "new";
   }
-  if (["\u0431/\u0443", "\u0431\u0443", "used", "u"].includes(value)) {
+  if (["\u0431/\u0443", "\u0431\u0443", "used", "u", "uzywany"].includes(value)) {
     return "used";
   }
   return null;
 }
 
-function categoryRows(includeAll = true) {
-  const items = includeAll ? CATEGORIES : CATEGORIES.filter((item) => item !== "\u0412\u0441\u0435");
+function getChatLanguage(chatId) {
+  const raw = String(chatLanguage.get(chatId) || "pl").trim().toLowerCase();
+  return raw === "ru" ? "ru" : "pl";
+}
+
+function setChatLanguage(chatId, lang) {
+  chatLanguage.set(chatId, lang === "ru" ? "ru" : "pl");
+}
+
+function t(chatId, key, vars = {}) {
+  const lang = getChatLanguage(chatId);
+  const dict = I18N[lang] || I18N.pl;
+  let text = dict[key] || I18N.pl[key] || key;
+  text = text.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+  return text;
+}
+
+function categoryText(item, chatId) {
+  const lang = getChatLanguage(chatId);
+  return lang === "ru" ? item.ru : item.pl;
+}
+
+function categoryRows(chatId, includeAll = true) {
+  const items = includeAll ? CATEGORY_ITEMS : CATEGORY_ITEMS.filter((item) => item.id !== "all");
   const rows = [];
   for (let i = 0; i < items.length; i += 3) {
-    rows.push(items.slice(i, i + 3));
+    rows.push(items.slice(i, i + 3).map((item) => categoryText(item, chatId)));
   }
   return rows;
 }
 
 function categoryByIndex(index) {
-  return CATEGORIES[index] || "\u0412\u0441\u0435";
+  return CATEGORY_ITEMS[index] || CATEGORY_ITEMS[0];
+}
+
+function findCategoryByInput(text) {
+  const value = String(text || "").trim().toLowerCase();
+  return CATEGORY_ITEMS.find((item) => item.ru.toLowerCase() === value || item.pl.toLowerCase() === value) || null;
 }
 
 async function tgRequest(method, payload = {}) {
@@ -345,46 +588,46 @@ function authorizeByPassword(chatId, input) {
   return { ok: false, reason: "invalid", attemptsLeft: Math.max(AUTH_MAX_FAILS - auth.fails, 0) };
 }
 
-function getPrompt(step) {
+function getPrompt(chatId, step) {
   if (step === "category") {
-    return "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044E \u0442\u043E\u0432\u0430\u0440\u0430.";
+    return t(chatId, "promptCategory");
   }
   if (step === "brand") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0431\u0440\u0435\u043D\u0434 \u0442\u043E\u0432\u0430\u0440\u0430 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: Apple, Sony).";
+    return t(chatId, "promptBrand");
   }
   if (step === "model") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043C\u043E\u0434\u0435\u043B\u044C \u0442\u043E\u0432\u0430\u0440\u0430.";
+    return t(chatId, "promptModel");
   }
   if (step === "year") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0433\u043E\u0434 \u0432\u044B\u043F\u0443\u0441\u043A\u0430 (1970-2100) \u0438\u043B\u0438 '-' \u0435\u0441\u043B\u0438 \u043D\u0435 \u043D\u0443\u0436\u0435\u043D.";
+    return t(chatId, "promptYear");
   }
   if (step === "memory") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043F\u0430\u043C\u044F\u0442\u044C/\u043E\u0431\u044A\u0435\u043C (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: 128GB) \u0438\u043B\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 '-' \u0435\u0441\u043B\u0438 \u043D\u0435 \u043D\u0443\u0436\u043D\u043E.";
+    return t(chatId, "promptMemory");
   }
   if (step === "condition") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435: \u041D\u043E\u0432\u044B\u0439 \u0438\u043B\u0438 \u0411/\u0423.";
+    return t(chatId, "promptCondition");
   }
   if (step === "price") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0446\u0435\u043D\u0443 \u0432 \u0440\u0443\u0431\u043B\u044F\u0445 (\u0442\u043E\u043B\u044C\u043A\u043E \u0447\u0438\u0441\u043B\u043E).";
+    return t(chatId, "promptPrice");
   }
   if (step === "seller") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043C\u044F \u043F\u0440\u043E\u0434\u0430\u0432\u0446\u0430.";
+    return t(chatId, "promptSeller");
   }
   if (step === "description") {
-    return "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 (\u0438\u043B\u0438 '-').";
+    return t(chatId, "promptDescription");
   }
   if (step === "photo") {
-    return "\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u043E\u0434\u043D\u043E \u0438\u043B\u0438 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E (\u043C\u043E\u0436\u043D\u043E \u0430\u043B\u044C\u0431\u043E\u043C\u043E\u043C). \u041A\u043E\u0433\u0434\u0430 \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u0442\u0435, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /done. \u0414\u043B\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u0431\u0435\u0437 \u0444\u043E\u0442\u043E \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 '-'.";
+    return t(chatId, "promptPhoto");
   }
   return "";
 }
 
 async function askStep(chatId, step) {
-  const prompt = getPrompt(step);
+  const prompt = getPrompt(chatId, step);
   if (step === "category") {
     await sendMessage(chatId, prompt, {
       reply_markup: {
-        keyboard: categoryRows(false),
+        keyboard: categoryRows(chatId, false),
         resize_keyboard: true,
         one_time_keyboard: true
       }
@@ -395,7 +638,7 @@ async function askStep(chatId, step) {
   if (step === "condition") {
     await sendMessage(chatId, prompt, {
       reply_markup: {
-        keyboard: [["\u041D\u043E\u0432\u044B\u0439", "\u0411/\u0423"]],
+        keyboard: [[t(chatId, "conditionNew"), t(chatId, "conditionUsed")]],
         resize_keyboard: true,
         one_time_keyboard: true
       }
@@ -406,8 +649,9 @@ async function askStep(chatId, step) {
   await sendMessage(chatId, prompt, { reply_markup: { remove_keyboard: true } });
 }
 
-function buildTitle(data) {
-  return `${data.brand} ${data.model}${data.memory ? ` ${data.memory}` : ""} ${data.condition === "new" ? "\u043D\u043E\u0432\u044B\u0439" : "\u0431/\u0443"}`;
+function buildTitle(chatId, data) {
+  const conditionLabel = data.condition === "new" ? t(chatId, "conditionLabelNew") : t(chatId, "conditionLabelUsed");
+  return `${data.brand} ${data.model}${data.memory ? ` ${data.memory}` : ""} ${conditionLabel}`;
 }
 
 function imageContentTypeByExt(ext = "") {
@@ -457,13 +701,21 @@ async function downloadPhotoFromTelegram(fileId) {
 }
 
 async function sendCategoryMenu(chatId, mode = "catalog", messageId = null) {
-  const text = `\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u0442\u0430\u043B\u043E\u0433 (${mode === "delete" ? "\u0440\u0435\u0436\u0438\u043C \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F" : "\u0440\u0435\u0436\u0438\u043C \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430"})`;
+  const text = t(chatId, "chooseCatalogMode", { mode: mode === "delete" ? t(chatId, "modeDelete") : t(chatId, "modeCatalog") });
   const keyboard = {
     inline_keyboard: [
-      ...categoryRows(true).map((row) =>
-        row.map((name) => ({ text: name, callback_data: `cat:${mode}:${CATEGORIES.indexOf(name)}:0` }))
+      ...CATEGORY_ITEMS.map((item, idx) => ({ item, idx }))
+        .reduce((rows, pair) => {
+          if (!rows.length || rows[rows.length - 1].length === 3) {
+            rows.push([]);
+          }
+          rows[rows.length - 1].push(pair);
+          return rows;
+        }, [])
+        .map((row) =>
+          row.map(({ item, idx }) => ({ text: categoryText(item, chatId), callback_data: `cat:${mode}:${idx}:0` }))
       ),
-      [{ text: "\u041C\u0435\u043D\u044E", callback_data: "cmd:menu" }]
+      [{ text: t(chatId, "menu"), callback_data: "cmd:menu" }]
     ]
   };
 
@@ -475,19 +727,23 @@ async function sendCategoryMenu(chatId, mode = "catalog", messageId = null) {
 }
 
 async function sendMainMenu(chatId, messageId = null) {
-  const text = "\u0413\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E";
+  const text = t(chatId, "mainMenu");
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "\u041A\u0430\u0442\u0430\u043B\u043E\u0433", callback_data: "menu:catalog" },
-        { text: "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435", callback_data: "menu:delete" }
+        { text: t(chatId, "catalog"), callback_data: "menu:catalog" },
+        { text: t(chatId, "delete"), callback_data: "menu:delete" }
       ],
       [
-        { text: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C", callback_data: "cmd:newad" },
-        { text: "\u0412\u044B\u0439\u0442\u0438", callback_data: "cmd:logout" }
+        { text: t(chatId, "add"), callback_data: "cmd:newad" },
+        { text: t(chatId, "logout"), callback_data: "cmd:logout" }
       ],
       [
-        { text: "\u0422\u0435\u0445\u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", callback_data: "cmd:support" }
+        { text: t(chatId, "support"), callback_data: "cmd:support" }
+      ],
+      [
+        { text: "🇵🇱 PL", callback_data: "lang:pl" },
+        { text: "🇷🇺 RU", callback_data: "lang:ru" }
       ]
     ]
   };
@@ -504,21 +760,21 @@ async function sendSupportMenu(chatId, messageId = null) {
   const approved = await fetchSupportRequests("approved");
 
   const pendingRows = pending.slice(0, 8).map((item) => ([
-    { text: `Approve #${item.id}`, callback_data: `sup:approve:${item.id}` },
-    { text: `Deny #${item.id}`, callback_data: `sup:deny:${item.id}` }
+    { text: `${t(chatId, "approve")} #${item.id}`, callback_data: `sup:approve:${item.id}` },
+    { text: `${t(chatId, "deny")} #${item.id}`, callback_data: `sup:deny:${item.id}` }
   ]));
 
   const approvedRows = approved.slice(0, 8).map((item) => ([
-    { text: `Open #${item.id}`, callback_data: `sup:open:${item.id}` }
+    { text: `${t(chatId, "open")} #${item.id}`, callback_data: `sup:open:${item.id}` }
   ]));
 
   const lines = [
-    "Support queue",
-    `Pending: ${pending.length}`,
-    `Approved: ${approved.length}`,
+    t(chatId, "supportQueue"),
+    `${t(chatId, "pending")}: ${pending.length}`,
+    `${t(chatId, "approved")}: ${approved.length}`,
     "",
-    ...pending.slice(0, 6).map((item) => `PENDING #${item.id} ${item.visitorName || "Guest"}`),
-    ...approved.slice(0, 6).map((item) => `APPROVED #${item.id} ${item.visitorName || "Guest"}`)
+    ...pending.slice(0, 6).map((item) => `${t(chatId, "pending").toUpperCase()} #${item.id} ${item.visitorName || t(chatId, "guest")}`),
+    ...approved.slice(0, 6).map((item) => `${t(chatId, "approved").toUpperCase()} #${item.id} ${item.visitorName || t(chatId, "guest")}`)
   ];
 
   const keyboard = {
@@ -526,8 +782,8 @@ async function sendSupportMenu(chatId, messageId = null) {
       ...pendingRows,
       ...approvedRows,
       [
-        { text: "Refresh", callback_data: "sup:refresh" },
-        { text: "Menu", callback_data: "cmd:menu" }
+        { text: t(chatId, "refresh"), callback_data: "sup:refresh" },
+        { text: t(chatId, "menu"), callback_data: "cmd:menu" }
       ]
     ]
   };
@@ -543,7 +799,7 @@ async function sendSupportMenu(chatId, messageId = null) {
 async function openSupportThread(chatId, ticketId) {
   const details = await fetchSupportTicket(ticketId, 0);
   if (!details.item) {
-    throw new Error("Support ticket not found.");
+    throw new Error(t(chatId, "itemNotFound"));
   }
 
   supportReplyMode.set(chatId, Number(ticketId));
@@ -552,17 +808,17 @@ async function openSupportThread(chatId, ticketId) {
   supportCursorByChat.set(supportCursorKey(chatId, ticketId), lastMessageId);
 
   const history = allMessages.slice(-8).map((item) => {
-    const from = item.from === "operator" ? "You" : item.from === "visitor" ? "Client" : "System";
+    const from = item.from === "operator" ? t(chatId, "you") : item.from === "visitor" ? t(chatId, "client") : t(chatId, "system");
     return `${from}: ${String(item.text || "").slice(0, 400)}`;
   });
 
   await sendMessage(
     chatId,
     [
-      `Dialog #${details.item.id}`,
-      `Status: ${formatSupportStatus(details.item.status)}`,
-      "Reply mode enabled: send plain text to reply to client.",
-      "Use /leave to exit this mode.",
+      `${t(chatId, "dialog")} #${details.item.id}`,
+      `${t(chatId, "status")}: ${formatSupportStatus(details.item.status)}`,
+      t(chatId, "replyModeOn"),
+      t(chatId, "useLeave"),
       "",
       ...history
     ].join("\\n")
@@ -584,7 +840,7 @@ async function syncSupportReplySessions() {
       if (!details.item) {
         supportReplyMode.delete(chatId);
         supportCursorByChat.delete(key);
-        await sendMessage(chatId, `Dialog #${ticketId} not found. Reply mode disabled.`);
+        await sendMessage(chatId, t(chatId, "notFoundDialog", { id: ticketId }));
         continue;
       }
 
@@ -599,15 +855,15 @@ async function syncSupportReplySessions() {
       if (details.item.status === "denied") {
         supportReplyMode.delete(chatId);
         supportCursorByChat.delete(key);
-        await sendMessage(chatId, `Dialog #${ticketId} denied. Reply mode disabled.`);
+        await sendMessage(chatId, t(chatId, "deniedDialog", { id: ticketId }));
         continue;
       }
 
       for (const msg of incoming) {
-        await sendMessage(chatId, `Client #${ticketId}: ${msg.text}`);
+        await sendMessage(chatId, `${t(chatId, "client")} #${ticketId}: ${msg.text}`);
       }
     } catch (error) {
-      await sendMessage(chatId, `Sync error #${ticketId}: ${error.message}`);
+      await sendMessage(chatId, t(chatId, "syncError", { id: ticketId, message: error.message }));
     }
   }
 }
@@ -615,13 +871,15 @@ async function syncSupportReplySessions() {
 async function sendCatalog(chatId, options, messageId = null) {
   const { mode, categoryIndex } = options;
   const ads = await fetchAdsFromSite();
-  const category = categoryByIndex(categoryIndex);
-  const filtered = category === "\u0412\u0441\u0435" ? ads : ads.filter((item) => item.category === category);
+  const categoryItem = categoryByIndex(categoryIndex);
+  const categoryRu = categoryItem.ru;
+  const categoryLabel = categoryText(categoryItem, chatId);
+  const filtered = categoryItem.id === "all" ? ads : ads.filter((item) => item.category === categoryRu);
 
   if (!filtered.length) {
-    const emptyText = `\u041A\u0430\u0442\u0430\u043B\u043E\u0433 "${category}" \u043F\u0443\u0441\u0442.`;
+    const emptyText = t(chatId, "categoryEmpty", { category: categoryLabel });
     const keyboard = {
-      inline_keyboard: [[{ text: "\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438", callback_data: `menu:${mode}` }]]
+      inline_keyboard: [[{ text: t(chatId, "categories"), callback_data: `menu:${mode}` }]]
     };
     if (messageId) {
       await editMessage(chatId, messageId, emptyText, { reply_markup: keyboard });
@@ -636,15 +894,15 @@ async function sendCatalog(chatId, options, messageId = null) {
   const start = page * PAGE_SIZE;
   const items = filtered.slice(start, start + PAGE_SIZE);
   const lines = items.map((item, idx) => `${start + idx + 1}. #${item.id} ${truncate(item.title, 34)} - ${item.price} \u20BD`);
-  const text = `\u041A\u0430\u0442\u0430\u043B\u043E\u0433: ${category}\n\u0421\u0442\u0440\u0430\u043D\u0438\u0446\u0430 ${page + 1}/${totalPages}\n\n${lines.join("\n")}`;
+  const text = `${t(chatId, "catalogTitle", { category: categoryLabel })}\n${t(chatId, "page", { current: page + 1, total: totalPages })}\n\n${lines.join("\n")}`;
 
   const keyboard = {
     inline_keyboard: [
-      ...items.map((item) => [{ text: `\u041E\u0442\u043A\u0440\u044B\u0442\u044C #${item.id}`, callback_data: `view:${mode}:${categoryIndex}:${page}:${item.id}` }]),
+      ...items.map((item) => [{ text: `${t(chatId, "open")} #${item.id}`, callback_data: `view:${mode}:${categoryIndex}:${page}:${item.id}` }]),
       [
         { text: "\u2B05\uFE0F", callback_data: `page:${mode}:${categoryIndex}:${page - 1}` },
-        { text: "\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438", callback_data: `menu:${mode}` },
-        { text: "\u041C\u0435\u043D\u044E", callback_data: "cmd:menu" },
+        { text: t(chatId, "categories"), callback_data: `menu:${mode}` },
+        { text: t(chatId, "menu"), callback_data: "cmd:menu" },
         { text: "\u27A1\uFE0F", callback_data: `page:${mode}:${categoryIndex}:${page + 1}` }
       ]
     ]
@@ -657,20 +915,21 @@ async function sendCatalog(chatId, options, messageId = null) {
   await sendMessage(chatId, text, { reply_markup: keyboard });
 }
 
-function adDetailsText(item) {
-  const conditionLabel = item.condition === "new" ? "\u041D\u043E\u0432\u044B\u0439" : "\u0411/\u0423";
-  const yearLabel = Number.isFinite(Number(item.year)) ? String(Math.round(Number(item.year))) : "\u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D";
-  const created = item.createdAt ? new Date(item.createdAt).toLocaleString("ru-RU") : "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E";
+function adDetailsText(chatId, item) {
+  const conditionLabel = item.condition === "new" ? t(chatId, "conditionLabelNew") : t(chatId, "conditionLabelUsed");
+  const yearLabel = Number.isFinite(Number(item.year)) ? String(Math.round(Number(item.year))) : t(chatId, "yearFallback");
+  const created = item.createdAt ? new Date(item.createdAt).toLocaleString(getChatLanguage(chatId) === "ru" ? "ru-RU" : "pl-PL") : t(chatId, "dateUnknown");
+  const description = item.description || t(chatId, "descriptionFallback");
   return [
     `#${item.id} ${item.title}`,
-    `\u0426\u0435\u043D\u0430: ${item.price} \u20BD`,
-    `\u041F\u0440\u043E\u0434\u0430\u0432\u0435\u0446: ${item.seller}`,
-    `\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F: ${item.category}`,
-    `\u0421\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435: ${conditionLabel}`,
-    `\u0413\u043E\u0434: ${yearLabel}`,
-    `\u0414\u0430\u0442\u0430: ${created}`,
+    `${t(chatId, "labelPrice")}: ${item.price} \u20BD`,
+    `${t(chatId, "labelSeller")}: ${item.seller}`,
+    `${t(chatId, "labelCategory")}: ${item.category}`,
+    `${t(chatId, "labelCondition")}: ${conditionLabel}`,
+    `${t(chatId, "labelYear")}: ${yearLabel}`,
+    `${t(chatId, "labelDate")}: ${created}`,
     "",
-    `${item.description || "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u043E."}`
+    `${description}`
   ].join("\n");
 }
 
@@ -678,21 +937,21 @@ async function showAdDetails(chatId, messageId, mode, categoryIndex, page, adId)
   const ads = await fetchAdsFromSite();
   const ad = ads.find((item) => Number(item.id) === Number(adId));
   if (!ad) {
-    await editMessage(chatId, messageId, "\u0422\u043E\u0432\u0430\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0438\u043B\u0438 \u0443\u0436\u0435 \u0443\u0434\u0430\u043B\u0435\u043D.", {
-      reply_markup: { inline_keyboard: [[{ text: "\u041D\u0430\u0437\u0430\u0434", callback_data: `page:${mode}:${categoryIndex}:${page}` }]] }
+    await editMessage(chatId, messageId, t(chatId, "itemNotFound"), {
+      reply_markup: { inline_keyboard: [[{ text: t(chatId, "back"), callback_data: `page:${mode}:${categoryIndex}:${page}` }]] }
     });
     return;
   }
 
   const buttons = [
-    [{ text: "\u041D\u0430\u0437\u0430\u0434", callback_data: `page:${mode}:${categoryIndex}:${page}` }],
-    [{ text: "\u041C\u0435\u043D\u044E", callback_data: "cmd:menu" }]
+    [{ text: t(chatId, "back"), callback_data: `page:${mode}:${categoryIndex}:${page}` }],
+    [{ text: t(chatId, "menu"), callback_data: "cmd:menu" }]
   ];
   if (mode === "delete") {
-    buttons.unshift([{ text: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u0435", callback_data: `delete:${mode}:${categoryIndex}:${page}:${ad.id}` }]);
+    buttons.unshift([{ text: t(chatId, "delete"), callback_data: `delete:${mode}:${categoryIndex}:${page}:${ad.id}` }]);
   }
 
-  await editMessage(chatId, messageId, adDetailsText(ad), {
+  await editMessage(chatId, messageId, adDetailsText(chatId, ad), {
     reply_markup: { inline_keyboard: buttons }
   });
 }
@@ -704,7 +963,7 @@ async function finalizeSession(chatId) {
   }
 
   const payload = {
-    title: buildTitle(session.data),
+    title: buildTitle(chatId, session.data),
     description: session.data.description,
     seller: session.data.seller,
     sellerTelegram: DEFAULT_SELLER_TELEGRAM,
@@ -720,12 +979,15 @@ async function finalizeSession(chatId) {
 
   try {
     const item = await postAdToSite(payload);
-    await sendMessage(
-      chatId,
-      `\u041E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u043D\u043E.\nID: ${item.id}\n${item.title}\n\u0426\u0435\u043D\u0430: ${item.price} \u20BD\n\u0413\u043E\u0434: ${item.year || "-"}\n\u0424\u043E\u0442\u043E: ${session.data.imageUrls.length}`
-    );
+    await sendMessage(chatId, t(chatId, "published", {
+      id: item.id,
+      title: item.title,
+      price: item.price,
+      year: item.year || "-",
+      photos: session.data.imageUrls.length
+    }));
   } catch (error) {
-    await sendMessage(chatId, `\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438: ${error.message}`);
+    await sendMessage(chatId, t(chatId, "publishError", { message: error.message }));
   }
   stopSession(chatId);
 }
@@ -739,11 +1001,12 @@ async function handleCreateSessionMessage(message) {
   }
 
   if (session.step === "category") {
-    if (!CATEGORIES.includes(text) || text === "\u0412\u0441\u0435") {
-      await sendMessage(chatId, "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044E \u043A\u043D\u043E\u043F\u043A\u043E\u0439.");
+    const category = findCategoryByInput(text);
+    if (!category || category.id === "all") {
+      await sendMessage(chatId, t(chatId, "chooseCategoryBtn"));
       return;
     }
-    session.data.category = text;
+    session.data.category = category.ru;
     session.step = "brand";
     await askStep(chatId, session.step);
     return;
@@ -751,7 +1014,7 @@ async function handleCreateSessionMessage(message) {
 
   if (session.step === "brand") {
     if (text.length < 2) {
-      await sendMessage(chatId, "\u0411\u0440\u0435\u043D\u0434 \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u043A\u043E\u0440\u043E\u0442\u043A\u0438\u0439.");
+      await sendMessage(chatId, t(chatId, "shortBrand"));
       return;
     }
     session.data.brand = text;
@@ -762,7 +1025,7 @@ async function handleCreateSessionMessage(message) {
 
   if (session.step === "model") {
     if (text.length < 2) {
-      await sendMessage(chatId, "\u041C\u043E\u0434\u0435\u043B\u044C \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u043A\u043E\u0440\u043E\u0442\u043A\u0430\u044F.");
+      await sendMessage(chatId, t(chatId, "shortModel"));
       return;
     }
     session.data.model = text;
@@ -780,7 +1043,7 @@ async function handleCreateSessionMessage(message) {
     }
     const year = Number(text.replace(/\s+/g, ""));
     if (!Number.isFinite(year) || year < 1970 || year > 2100) {
-      await sendMessage(chatId, "\u0413\u043E\u0434 \u0434\u043E\u043B\u0436\u0435\u043D \u0431\u044B\u0442\u044C \u0432 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0435 1970-2100 \u0438\u043B\u0438 '-'.");
+      await sendMessage(chatId, t(chatId, "invalidYear"));
       return;
     }
     session.data.year = Math.round(year);
@@ -799,7 +1062,7 @@ async function handleCreateSessionMessage(message) {
   if (session.step === "condition") {
     const condition = normalizeCondition(text);
     if (!condition) {
-      await sendMessage(chatId, "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u041D\u043E\u0432\u044B\u0439 \u0438\u043B\u0438 \u0411/\u0423.");
+      await sendMessage(chatId, t(chatId, "invalidCondition"));
       return;
     }
     session.data.condition = condition;
@@ -811,7 +1074,7 @@ async function handleCreateSessionMessage(message) {
   if (session.step === "price") {
     const price = Number(text.replace(/\s+/g, ""));
     if (!Number.isFinite(price) || price < 1) {
-      await sendMessage(chatId, "\u0426\u0435\u043D\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0447\u0438\u0441\u043B\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u0435 0.");
+      await sendMessage(chatId, t(chatId, "invalidPrice"));
       return;
     }
     session.data.price = Math.round(price);
@@ -822,7 +1085,7 @@ async function handleCreateSessionMessage(message) {
 
   if (session.step === "seller") {
     if (text.length < 2) {
-      await sendMessage(chatId, "\u0418\u043C\u044F \u043F\u0440\u043E\u0434\u0430\u0432\u0446\u0430 \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u043A\u043E\u0440\u043E\u0442\u043A\u043E\u0435.");
+      await sendMessage(chatId, t(chatId, "shortSeller"));
       return;
     }
     session.data.seller = text;
@@ -832,7 +1095,7 @@ async function handleCreateSessionMessage(message) {
   }
 
   if (session.step === "description") {
-    session.data.description = text === "-" ? "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u043E." : text;
+    session.data.description = text === "-" ? t(chatId, "descriptionFallback") : text;
     session.step = "photo";
     await askStep(chatId, session.step);
     return;
@@ -844,7 +1107,7 @@ async function handleCreateSessionMessage(message) {
       await finalizeSession(chatId);
       return;
     }
-    await sendMessage(chatId, "\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0444\u043E\u0442\u043E (\u043C\u043E\u0436\u043D\u043E \u0441\u0440\u0430\u0437\u0443 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E) \u0438 \u043F\u043E\u0441\u043B\u0435 \u044D\u0442\u043E\u0433\u043E /done, \u043B\u0438\u0431\u043E '-' \u0431\u0435\u0437 \u0444\u043E\u0442\u043E.");
+    await sendMessage(chatId, t(chatId, "photoInstruction"));
   }
 }
 
@@ -865,29 +1128,14 @@ async function handleCreateSessionPhoto(message) {
     const imageUrl = await downloadPhotoFromTelegram(biggest.file_id);
     session.data.imageUrls.push(imageUrl);
     session.data.imageUrls = session.data.imageUrls.slice(0, 12);
-    await sendMessage(chatId, `\u0424\u043E\u0442\u043E \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E (${session.data.imageUrls.length}). \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0435\u0449\u0451 \u0444\u043E\u0442\u043E \u0438\u043B\u0438 /done.`);
+    await sendMessage(chatId, t(chatId, "photoAdded", { count: session.data.imageUrls.length }));
   } catch (error) {
-    await sendMessage(chatId, `\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0444\u043E\u0442\u043E: ${error.message}`);
+    await sendMessage(chatId, t(chatId, "photoUploadError", { message: error.message }));
   }
 }
 
 async function handleStart(chatId) {
-  await sendMessage(
-    chatId,
-    [
-      "\u0411\u043E\u0442 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u043E\u043C.",
-      "\u041A\u043E\u043C\u0430\u043D\u0434\u044B:",
-      "/login - \u0432\u043E\u0439\u0442\u0438 \u043F\u043E \u043F\u0430\u0440\u043E\u043B\u044E",
-      "/logout - \u0437\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u043E\u0441\u0442\u0443\u043F",
-      "/newad - \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u0435",
-      "/catalog - \u043A\u0430\u0442\u0430\u043B\u043E\u0433 \u0442\u043E\u0432\u0430\u0440\u043E\u0432",
-      "/delete - \u043A\u0430\u0442\u0430\u043B\u043E\u0433 \u0434\u043B\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F",
-      "/support - \u0437\u0430\u044F\u0432\u043A\u0438 \u0442\u0435\u0445\u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438",
-      "/leave - \u0432\u044B\u0439\u0442\u0438 \u0438\u0437 \u0440\u0435\u0436\u0438\u043C\u0430 \u043E\u0442\u0432\u0435\u0442\u043E\u0432",
-      "/done - \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0444\u043E\u0442\u043E",
-      "/cancel - \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0432\u0432\u043E\u0434"
-    ].join("\n")
-  );
+  await sendMessage(chatId, t(chatId, "startText"));
   await sendMainMenu(chatId);
 }
 
@@ -900,18 +1148,33 @@ async function handleMessage(message) {
   const text = (message.text || "").trim();
 
   if (text === "/start") {
+    if (!chatLanguage.has(chatId)) {
+      setChatLanguage(chatId, "pl");
+    }
     stopSession(chatId);
     await handleStart(chatId);
     if (!isAuthorized(chatId)) {
-      await sendMessage(chatId, "\u0414\u043E\u0441\u0442\u0443\u043F \u043A \u0431\u043E\u0442\u0443 \u0437\u0430\u043A\u0440\u044B\u0442 \u043F\u0430\u0440\u043E\u043B\u0435\u043C. \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /login.");
+      await sendMessage(chatId, t(chatId, "accessLockedStart"));
     }
+    return;
+  }
+
+  if (text === "/lang") {
+    await sendMessage(chatId, t(chatId, "langChoose"), {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "🇵🇱 PL", callback_data: "lang:pl" },
+          { text: "🇷🇺 RU", callback_data: "lang:ru" }
+        ]]
+      }
+    });
     return;
   }
 
   if (text === "/menu") {
     stopSession(chatId);
     if (!isAuthorized(chatId)) {
-      await sendMessage(chatId, "\u0411\u043E\u0442 \u0437\u0430\u0449\u0438\u0449\u0451\u043D. \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /login, \u0437\u0430\u0442\u0435\u043C \u043F\u0430\u0440\u043E\u043B\u044C.");
+      await sendMessage(chatId, t(chatId, "botProtected"));
       return;
     }
     await sendMainMenu(chatId);
@@ -922,21 +1185,21 @@ async function handleMessage(message) {
     stopSession(chatId);
     resetAuth(chatId);
     supportReplyMode.delete(chatId);
-    await sendMessage(chatId, "\u0414\u043E\u0441\u0442\u0443\u043F \u0437\u0430\u043A\u0440\u044B\u0442. \u0414\u043B\u044F \u0432\u0445\u043E\u0434\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /login.");
+    await sendMessage(chatId, t(chatId, "accessClosed"));
     return;
   }
 
   if (text === "/login") {
     if (isAuthorized(chatId)) {
-      await sendMessage(chatId, "\u0412\u044B \u0443\u0436\u0435 \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u043E\u0432\u0430\u043D\u044B.");
+      await sendMessage(chatId, t(chatId, "alreadyAuthorized"));
       return;
     }
     const seconds = authSecondsLeft(chatId);
     if (seconds > 0) {
-      await sendMessage(chatId, `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u043C\u043D\u043E\u0433\u043E \u043E\u0448\u0438\u0431\u043E\u043A. \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 ${seconds} \u0441\u0435\u043A.`);
+      await sendMessage(chatId, t(chatId, "tooManyErrorsRetry", { seconds }));
       return;
     }
-    await sendMessage(chatId, "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C \u043E\u0434\u043D\u0438\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u043C.");
+    await sendMessage(chatId, t(chatId, "enterPassword"));
     return;
   }
 
@@ -944,30 +1207,30 @@ async function handleMessage(message) {
     if (text && !text.startsWith("/")) {
       const authResult = authorizeByPassword(chatId, text);
       if (authResult.ok) {
-        await sendMessage(chatId, "\u0414\u043E\u0441\u0442\u0443\u043F \u043E\u0442\u043A\u0440\u044B\u0442. \u0414\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u0435 \u043A\u043E\u043C\u0430\u043D\u0434\u044B: /support /newad /catalog /delete /logout");
+        await sendMessage(chatId, t(chatId, "accessOpened"));
         return;
       }
       if (authResult.reason === "locked") {
-        await sendMessage(chatId, `\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u043C\u043D\u043E\u0433\u043E \u043E\u0448\u0438\u0431\u043E\u043A. \u0411\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u043D\u0430 ${authResult.seconds} \u0441\u0435\u043A.`);
+        await sendMessage(chatId, t(chatId, "tooManyErrorsLocked", { seconds: authResult.seconds }));
         return;
       }
-      await sendMessage(chatId, `\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C. \u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043F\u044B\u0442\u043E\u043A: ${authResult.attemptsLeft}.`);
+      await sendMessage(chatId, t(chatId, "invalidPassword", { attempts: authResult.attemptsLeft }));
       return;
     }
 
-    await sendMessage(chatId, "\u0411\u043E\u0442 \u0437\u0430\u0449\u0438\u0449\u0451\u043D. \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /login, \u0437\u0430\u0442\u0435\u043C \u043F\u0430\u0440\u043E\u043B\u044C.");
+    await sendMessage(chatId, t(chatId, "botProtected"));
     return;
   }
 
   if (text === "/cancel") {
     stopSession(chatId);
-    await sendMessage(chatId, "\u0422\u0435\u043A\u0443\u0449\u0438\u0439 \u0432\u0432\u043E\u0434 \u043E\u0442\u043C\u0435\u043D\u0435\u043D.");
+    await sendMessage(chatId, t(chatId, "canceled"));
     return;
   }
 
   if (text === "/newad") {
     startSession(chatId);
-    await sendMessage(chatId, "\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u043C \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u044F.");
+    await sendMessage(chatId, t(chatId, "creatingAd"));
     await askStep(chatId, "category");
     return;
   }
@@ -994,10 +1257,10 @@ async function handleMessage(message) {
     const currentTicketId = supportReplyMode.get(chatId);
     if (currentTicketId) {
       supportReplyMode.delete(chatId);
-      await sendMessage(chatId, `\u0420\u0435\u0436\u0438\u043C \u043E\u0442\u0432\u0435\u0442\u0430 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D (#${currentTicketId}).`);
+      await sendMessage(chatId, t(chatId, "replyModeOff", { id: currentTicketId }));
       return;
     }
-    await sendMessage(chatId, "\u0420\u0435\u0436\u0438\u043C \u043E\u0442\u0432\u0435\u0442\u0430 \u043D\u0435 \u0430\u043A\u0442\u0438\u0432\u0435\u043D.");
+    await sendMessage(chatId, t(chatId, "replyModeNotActive"));
     return;
   }
 
@@ -1011,9 +1274,9 @@ async function handleMessage(message) {
     const ticketId = supportReplyMode.get(chatId);
     try {
       await postSupportOperatorMessage(ticketId, text, chatId);
-      await sendMessage(chatId, `\u041E\u0442\u0432\u0435\u0442 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 \u0434\u0438\u0430\u043B\u043E\u0433 #${ticketId}.`);
+      await sendMessage(chatId, t(chatId, "replySent", { id: ticketId }));
     } catch (error) {
-      await sendMessage(chatId, `\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438: ${error.message}`);
+      await sendMessage(chatId, t(chatId, "sendError", { message: error.message }));
     }
     return;
   }
@@ -1028,11 +1291,11 @@ async function handleMessage(message) {
   }
 
   if (Array.isArray(message.photo) && message.photo.length) {
-    await sendMessage(chatId, "\u0414\u043B\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u0444\u043E\u0442\u043E \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /newad.");
+    await sendMessage(chatId, t(chatId, "useNewAdForPhoto"));
     return;
   }
 
-  await sendMessage(chatId, "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /menu, /support, /newad, /catalog, /delete \u0438\u043B\u0438 /logout.");
+  await sendMessage(chatId, t(chatId, "fallbackHelp"));
 }
 
 async function handleCallbackQuery(query) {
@@ -1044,9 +1307,17 @@ async function handleCallbackQuery(query) {
   const messageId = query.message.message_id;
   const data = query.data;
 
+  if (data.startsWith("lang:")) {
+    const [, lang] = data.split(":");
+    setChatLanguage(chatId, lang === "ru" ? "ru" : "pl");
+    await answerCallbackQuery(query.id, t(chatId, "langSet", { lang: lang === "ru" ? t(chatId, "langRU") : t(chatId, "langPL") }));
+    await sendMainMenu(chatId, messageId);
+    return;
+  }
+
   if (!isAuthorized(chatId)) {
-    await answerCallbackQuery(query.id, "\u041D\u0443\u0436\u0435\u043D \u043F\u0430\u0440\u043E\u043B\u044C");
-    await sendMessage(chatId, "\u0414\u043E\u0441\u0442\u0443\u043F \u043A \u043A\u043D\u043E\u043F\u043A\u0430\u043C \u0437\u0430\u043A\u0440\u044B\u0442. \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /login \u0438 \u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C.");
+    await answerCallbackQuery(query.id, t(chatId, "passwordRequired"));
+    await sendMessage(chatId, t(chatId, "noAccessButtons"));
     return;
   }
 
@@ -1064,8 +1335,8 @@ async function handleCallbackQuery(query) {
       if (command === "newad") {
         stopSession(chatId);
         startSession(chatId);
-        await answerCallbackQuery(query.id, "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u044F");
-        await sendMessage(chatId, "\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u043C \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u044F.");
+        await answerCallbackQuery(query.id, t(chatId, "creatingAdCallback"));
+        await sendMessage(chatId, t(chatId, "creatingAd"));
         await askStep(chatId, "category");
         return;
       }
@@ -1074,9 +1345,9 @@ async function handleCallbackQuery(query) {
         stopSession(chatId);
         resetAuth(chatId);
         supportReplyMode.delete(chatId);
-        await answerCallbackQuery(query.id, "\u0412\u044B\u0445\u043E\u0434 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D");
+        await answerCallbackQuery(query.id, t(chatId, "loggedOut"));
         await sendMainMenu(chatId, messageId);
-        await sendMessage(chatId, "\u0414\u043E\u0441\u0442\u0443\u043F \u0437\u0430\u043A\u0440\u044B\u0442. \u0414\u043B\u044F \u0432\u0445\u043E\u0434\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /login.");
+        await sendMessage(chatId, t(chatId, "accessClosed"));
         return;
       }
 
@@ -1097,13 +1368,13 @@ async function handleCallbackQuery(query) {
 
       const ticketId = Number(rawId);
       if (!Number.isFinite(ticketId)) {
-        await answerCallbackQuery(query.id, "\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u044B\u0439 ID");
+        await answerCallbackQuery(query.id, t(chatId, "invalidId"));
         return;
       }
 
       if (action === "approve") {
         await postSupportDecision(ticketId, "approved", chatId);
-        await answerCallbackQuery(query.id, "\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0434\u043E\u0431\u0440\u0435\u043D");
+        await answerCallbackQuery(query.id, t(chatId, "requestApproved"));
         await openSupportThread(chatId, ticketId);
         await sendSupportMenu(chatId);
         return;
@@ -1111,13 +1382,13 @@ async function handleCallbackQuery(query) {
 
       if (action === "deny") {
         await postSupportDecision(ticketId, "denied", chatId);
-        await answerCallbackQuery(query.id, "\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D");
+        await answerCallbackQuery(query.id, t(chatId, "requestDenied"));
         await sendSupportMenu(chatId, messageId);
         return;
       }
 
       if (action === "open") {
-        await answerCallbackQuery(query.id, "\u0414\u0438\u0430\u043B\u043E\u0433 \u043E\u0442\u043A\u0440\u044B\u0442");
+        await answerCallbackQuery(query.id, t(chatId, "dialogOpened"));
         await openSupportThread(chatId, ticketId);
         return;
       }
@@ -1163,14 +1434,14 @@ async function handleCallbackQuery(query) {
       const [, mode, categoryIndex, page, adId] = data.split(":");
       await deleteAdFromSite(Number(adId));
       await sendCatalog(chatId, { mode, categoryIndex: Number(categoryIndex), page: Number(page) }, messageId);
-      await answerCallbackQuery(query.id, "\u041E\u0431\u044A\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u0443\u0434\u0430\u043B\u0435\u043D\u043E");
+      await answerCallbackQuery(query.id, t(chatId, "deleted"));
       return;
     }
 
     await answerCallbackQuery(query.id);
   } catch (error) {
-    await answerCallbackQuery(query.id, "\u041E\u0448\u0438\u0431\u043A\u0430");
-    await sendMessage(chatId, `\u041E\u0448\u0438\u0431\u043A\u0430: ${error.message}`);
+    await answerCallbackQuery(query.id, t(chatId, "callbackError"));
+    await sendMessage(chatId, t(chatId, "genericError", { message: error.message }));
   }
 }
 

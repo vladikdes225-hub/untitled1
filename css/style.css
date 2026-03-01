@@ -65,6 +65,33 @@ input {
   opacity: 0.9;
 }
 
+.lang-switch {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-btn {
+  border: 1px solid #2d333d;
+  background: #131820;
+  color: var(--text);
+  border-radius: 10px;
+  height: 34px;
+  padding: 0 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lang-btn:hover {
+  border-color: var(--accent);
+}
+
+.lang-btn.is-active {
+  border-color: rgba(8, 196, 233, 0.7);
+  background: linear-gradient(180deg, #172435, #121a26);
+}
+
 .brand-mark {
   width: 20px;
   height: 20px;
@@ -1025,6 +1052,16 @@ input {
 @media (max-width: 780px) {
   .topbar {
     padding: 8px 14px;
+  }
+
+  .lang-switch {
+    gap: 6px;
+  }
+
+  .lang-btn {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
   }
 
   .layout {

@@ -1,9 +1,9 @@
 ﻿<!doctype html>
-<html class="theme-dark" lang="ru" data-api-fallback-base="">
+<html class="theme-dark" lang="pl" data-api-fallback-base="">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RXSEND Маркет</title>
+  <title>RXSEND Market</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,43 +13,47 @@
   <header class="topbar">
     <a class="brand" href="#" id="brandLink">
       <span class="brand-mark" aria-hidden="true"></span>
-      <span class="brand-name">RXSEND <span>Маркет</span></span>
+      <span class="brand-name">RXSEND <span id="brandMarketLabel">Market</span></span>
     </a>
+    <div class="lang-switch" id="langSwitch" aria-label="Language selector">
+      <button class="lang-btn is-active" type="button" data-lang="pl" aria-label="Polski">🇵🇱 PL</button>
+      <button class="lang-btn" type="button" data-lang="ru" aria-label="Русский">🇷🇺 RU</button>
+    </div>
   </header>
 
   <div class="layout">
     <aside class="sidebar">
-      <nav class="side-nav" aria-label="Основное меню">
+      <nav class="side-nav" id="sideNav" aria-label="Menu główne">
         <button class="side-link is-active" data-mode="market" type="button">
-          <span class="icon">&#x1F6D2;</span> Маркет
+          <span class="icon">&#x1F6D2;</span> <span id="sideMarketText">Market</span>
         </button>
         <button class="side-link" data-mode="all-devices" type="button">
-          <span class="icon">&#x1F4E6;</span> Все устройства
+          <span class="icon">&#x1F4E6;</span> <span id="sideAllDevicesText">Wszystkie urządzenia</span>
         </button>
         <button class="side-link" data-mode="only-new" type="button">
-          <span class="icon">&#x2728;</span> Только новые
+          <span class="icon">&#x2728;</span> <span id="sideOnlyNewText">Tylko nowe</span>
         </button>
         <button class="side-link" data-mode="only-used" type="button">
-          <span class="icon">&#x267B;&#xFE0F;</span> Только Б/У
+          <span class="icon">&#x267B;&#xFE0F;</span> <span id="sideOnlyUsedText">Tylko używane</span>
         </button>
       </nav>
-      <section class="filters-panel" aria-label="Фильтры">
-        <h2 class="filters-title">Фильтры</h2>
+      <section class="filters-panel" id="filtersPanel" aria-label="Filtry">
+        <h2 class="filters-title" id="filtersTitle">Filtry</h2>
 
         <div class="filter-group">
-          <p class="filter-label">Цена</p>
+          <p class="filter-label" id="priceFilterLabel">Cena</p>
           <p class="filter-range-value" id="priceRangeLabel">0 ₽ — 2 000 000 ₽</p>
           <div class="price-slider-wrap">
-            <input id="priceMinRange" class="price-range range-min" type="range" min="0" max="2000000" step="1000" value="0" aria-label="Минимальная цена">
-            <input id="priceMaxRange" class="price-range range-max" type="range" min="0" max="2000000" step="1000" value="2000000" aria-label="Максимальная цена">
+            <input id="priceMinRange" class="price-range range-min" type="range" min="0" max="2000000" step="1000" value="0" aria-label="Minimalna cena">
+            <input id="priceMaxRange" class="price-range range-max" type="range" min="0" max="2000000" step="1000" value="2000000" aria-label="Maksymalna cena">
           </div>
           <div class="price-inputs">
             <label class="filter-field">
-              <span>От</span>
+              <span id="priceFromLabel">Od</span>
               <input id="priceMinInput" type="number" min="0" max="2000000" step="1000" value="0" inputmode="numeric">
             </label>
             <label class="filter-field">
-              <span>До</span>
+              <span id="priceToLabel">Do</span>
               <input id="priceMaxInput" type="number" min="0" max="2000000" step="1000" value="2000000" inputmode="numeric">
             </label>
           </div>
@@ -57,30 +61,30 @@
 
         <div class="filter-group">
           <label class="filter-field">
-            <span>Год</span>
+            <span id="yearFilterLabel">Rok</span>
             <select id="yearSelect">
-              <option value="all">Все годы</option>
+              <option value="all">Wszystkie lata</option>
             </select>
           </label>
         </div>
 
         <div class="filter-group">
           <label class="filter-field">
-            <span>Бренд</span>
+            <span id="brandFilterLabel">Marka</span>
             <select id="brandSelect">
-              <option value="all">Любой бренд</option>
+              <option value="all">Dowolna marka</option>
             </select>
           </label>
         </div>
 
         <div class="filter-group">
           <label class="filter-field">
-            <span>Модель устройства</span>
-            <input id="modelInput" type="text" placeholder="Например: iPhone 15 Pro">
+            <span id="modelFilterLabel">Model urządzenia</span>
+            <input id="modelInput" type="text" placeholder="Np.: iPhone 15 Pro">
           </label>
         </div>
 
-        <button class="filters-reset-btn" id="resetFiltersButton" type="button">Сбросить фильтры</button>
+        <button class="filters-reset-btn" id="resetFiltersButton" type="button">Resetuj filtry</button>
       </section>
     </aside>
 
@@ -88,35 +92,35 @@
       <div class="search-row">
         <label class="search-box">
           <span aria-hidden="true">&#x1F50D;</span>
-          <input id="searchInput" type="search" placeholder="Поиск">
+          <input id="searchInput" type="search" placeholder="Szukaj">
         </label>
       </div>
 
       <div class="chips-row">
-        <button class="sort-btn" id="sortButton" type="button" aria-label="Сменить сортировку">Новые</button>
+        <button class="sort-btn" id="sortButton" type="button" aria-label="Zmień sortowanie">Najnowsze</button>
         <div class="chips" id="chips"></div>
       </div>
 
-      <h1 class="section-title">Объявления для тебя <span id="resultCount"></span></h1>
+      <h1 class="section-title"><span id="sectionTitleText">Ogłoszenia dla Ciebie</span> <span id="resultCount"></span></h1>
       <section class="cards-grid" id="cardsGrid" aria-live="polite"></section>
     </main>
   </div>
 
-  <footer class="site-footer" aria-label="Контакты">
+  <footer class="site-footer" id="siteFooter" aria-label="Kontakt">
     <div class="site-footer-inner">
-      <h2 class="footer-title">Контакты</h2>
-      <p class="footer-subtitle">Свяжитесь с нами удобным способом</p>
+      <h2 class="footer-title" id="footerTitle">Kontakt</h2>
+      <p class="footer-subtitle" id="footerSubtitle">Skontaktuj się z nami wygodnym sposobem</p>
       <div class="footer-contacts">
-        <a class="footer-contact" href="tel:+48736336145" aria-label="Позвонить по номеру +48 736 336 145">
-          <span class="footer-contact-label">Телефон</span>
+        <a class="footer-contact" id="footerPhoneLink" href="tel:+48736336145" aria-label="Zadzwoń pod numer +48 736 336 145">
+          <span class="footer-contact-label" id="footerPhoneLabel">Telefon</span>
           <strong>+48 736 336 145</strong>
         </a>
-        <a class="footer-contact" href="mailto:aolhovia@gmail.com" aria-label="Написать на aolhovia@gmail.com">
-          <span class="footer-contact-label">Email</span>
+        <a class="footer-contact" id="footerEmailLink" href="mailto:aolhovia@gmail.com" aria-label="Napisz na aolhovia@gmail.com">
+          <span class="footer-contact-label" id="footerEmailLabel">Email</span>
           <strong>aolhovia@gmail.com</strong>
         </a>
-        <a class="footer-contact" href="https://t.me/RXSEND" target="_blank" rel="noopener noreferrer" aria-label="Открыть Telegram @RXSEND">
-          <span class="footer-contact-label">Telegram</span>
+        <a class="footer-contact" id="footerTelegramLink" href="https://t.me/RXSEND" target="_blank" rel="noopener noreferrer" aria-label="Otwórz Telegram @RXSEND">
+          <span class="footer-contact-label" id="footerTelegramLabel">Telegram</span>
           <strong>@RXSEND</strong>
         </a>
       </div>
@@ -127,8 +131,8 @@
     <div class="overlay-backdrop" data-close-product></div>
     <article class="product-panel">
       <header class="product-header">
-        <button type="button" class="ghost-link" data-close-product>Закрыть</button>
-        <h2 id="productCategory">Телефоны</h2>
+        <button type="button" class="ghost-link" id="overlayCloseButton" data-close-product>Zamknij</button>
+        <h2 id="productCategory">Telefony</h2>
       </header>
       <div class="product-main">
         <div class="product-photo" id="productPhoto"></div>
@@ -142,32 +146,32 @@
               <strong id="sellerName"></strong>
               <p id="sellerContact"></p>
             </div>
-            <a id="sellerProfileLink" class="seller-link" target="_blank" rel="noopener noreferrer">Открыть контакт</a>
+            <a id="sellerProfileLink" class="seller-link" target="_blank" rel="noopener noreferrer">Otwórz kontakt</a>
           </div>
           <div class="product-actions">
-            <a id="managerLink" class="primary-btn" target="_blank" rel="noopener noreferrer">Связаться с менеджером</a>
-            <a id="buyLink" class="primary-btn is-buy" target="_blank" rel="noopener noreferrer">Перейти к покупке</a>
+            <a id="managerLink" class="primary-btn" target="_blank" rel="noopener noreferrer">Skontaktuj się z menedżerem</a>
+            <a id="buyLink" class="primary-btn is-buy" target="_blank" rel="noopener noreferrer">Przejdź do zakupu</a>
           </div>
         </div>
       </div>
     </article>
   </section>
 
-  <section class="support-widget" id="supportWidget" aria-label="Техподдержка">
-    <button class="support-fab" id="supportToggle" type="button">Техподдержка</button>
+  <section class="support-widget" id="supportWidget" aria-label="Wsparcie">
+    <button class="support-fab" id="supportToggle" type="button">Wsparcie</button>
     <article class="support-panel" id="supportPanel" aria-hidden="true">
       <header class="support-header">
-        <strong>Техподдержка</strong>
-        <button class="support-close" id="supportClose" type="button" aria-label="Закрыть">×</button>
+        <strong id="supportPanelTitle">Wsparcie</strong>
+        <button class="support-close" id="supportClose" type="button" aria-label="Zamknij">×</button>
       </header>
       <div class="support-messages" id="supportMessages"></div>
-      <p class="support-status" id="supportStatus">Нажмите кнопку ниже, чтобы отправить запрос.</p>
+      <p class="support-status" id="supportStatus">Kliknij przycisk poniżej, aby wysłać zgłoszenie.</p>
       <div class="support-connect-row">
-        <button class="support-connect-btn" id="supportConnect" type="button">Связаться с техподдержкой</button>
+        <button class="support-connect-btn" id="supportConnect" type="button">Połącz ze wsparciem</button>
       </div>
       <form class="support-chat-form" id="supportChatForm" autocomplete="off">
-        <input id="supportInput" type="text" maxlength="500" placeholder="Введите сообщение..." disabled>
-        <button type="submit" id="supportSend" disabled>Отправить</button>
+        <input id="supportInput" type="text" maxlength="500" placeholder="Wpisz wiadomość..." disabled>
+        <button type="submit" id="supportSend" disabled>Wyślij</button>
       </form>
     </article>
   </section>
