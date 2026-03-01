@@ -9,12 +9,16 @@
   const SUPPORT_VISITOR_KEY = "rxsend_support_visitor_id";
   const SUPPORT_TICKET_KEY = "rxsend_support_ticket_id";
   const LANGUAGE_STORAGE_KEY = "rxsend_language";
+  const CURRENCY_STORAGE_KEY = "rxsend_currency";
   const CONTACT_PHONE = "+48 736 336 145";
   const CONTACT_EMAIL = "aolhovia@gmail.com";
   const CONTACT_TELEGRAM = "RXSEND";
-  const PRICE_MIN_LIMIT = 0;
-  const PRICE_MAX_LIMIT = 2_000_000;
-  const PRICE_STEP = 1000;
+  const CURRENCY_META = {
+    USD: { code: "USD", min: 0, max: 100_000, step: 100, rubRate: 90 },
+    PLN: { code: "PLN", min: 0, max: 200_000, step: 100, rubRate: 23 },
+    RUB: { code: "RUB", min: 0, max: 2_000_000, step: 1000, rubRate: 1 }
+  };
+  const DEFAULT_CURRENCY = "PLN";
   const PHOTO_ZOOM_MIN = 1;
   const PHOTO_ZOOM_MAX = 3;
   const PHOTO_ZOOM_STEP = 0.25;
@@ -60,6 +64,10 @@
       filtersAria: "Filtry",
       filtersTitle: "Filtry",
       price: "Cena",
+      currency: "Waluta",
+      currencyUSD: "USD ($)",
+      currencyPLN: "PLN (zl)",
+      currencyRUB: "RUB (rubl)",
       from: "Od",
       to: "Do",
       year: "Rok",
@@ -138,6 +146,10 @@
       filtersAria: "Фильтры",
       filtersTitle: "Фильтры",
       price: "Цена",
+      currency: "Валюта",
+      currencyUSD: "USD ($)",
+      currencyPLN: "PLN (zł)",
+      currencyRUB: "RUB (₽)",
       from: "От",
       to: "До",
       year: "Год",
@@ -206,17 +218,20 @@
       dateLocale: "ru-RU"
     }
   };
+  const initialCurrency = loadCurrency();
+  const initialLimits = getCurrencyLimits(initialCurrency);
 
   const state = {
     ads: [],
     query: "",
     lang: loadLanguage(),
+    currency: initialCurrency,
     sideMode: "market",
     category: "all",
     sort: "recent",
     filters: {
-      priceMin: PRICE_MIN_LIMIT,
-      priceMax: PRICE_MAX_LIMIT,
+      priceMin: initialLimits.min,
+      priceMax: initialLimits.max,
       year: "all",
       brand: "all",
       model: ""
@@ -257,6 +272,8 @@
     sideOnlyUsedText: document.getElementById("sideOnlyUsedText"),
     filtersTitle: document.getElementById("filtersTitle"),
     priceFilterLabel: document.getElementById("priceFilterLabel"),
+    currencyFilterLabel: document.getElementById("currencyFilterLabel"),
+    currencySelect: document.getElementById("currencySelect"),
     priceFromLabel: document.getElementById("priceFromLabel"),
     priceToLabel: document.getElementById("priceToLabel"),
     yearFilterLabel: document.getElementById("yearFilterLabel"),
@@ -330,6 +347,27 @@
     }
   }
 
+  function loadCurrency() {
+    try {
+      const raw = String(localStorage.getItem(CURRENCY_STORAGE_KEY) || "").trim().toUpperCase();
+      return CURRENCY_META[raw] ? raw : DEFAULT_CURRENCY;
+    } catch {
+      return DEFAULT_CURRENCY;
+    }
+  }
+
+  function saveCurrency(currency) {
+    try {
+      localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+    } catch {
+      // ignore
+    }
+  }
+
+  function getCurrencyLimits(currency = state.currency) {
+    return CURRENCY_META[currency] || CURRENCY_META[DEFAULT_CURRENCY];
+  }
+
   function i18n() {
     return state.lang === "ru" ? UI.ru : UI.pl;
   }
@@ -356,6 +394,75 @@
       return tr("sortPriceDown");
     }
     return tr("sortRecent");
+  }
+
+  function convertAmount(value, fromCurrency, toCurrency) {
+    const fromMeta = getCurrencyLimits(fromCurrency);
+    const toMeta = getCurrencyLimits(toCurrency);
+    const amount = Number(value) || 0;
+    const rub = amount * fromMeta.rubRate;
+    return rub / toMeta.rubRate;
+  }
+
+  function alignToStep(value, step) {
+    const safeStep = Math.max(1, Number(step) || 1);
+    return Math.round(value / safeStep) * safeStep;
+  }
+
+  function normalizeCurrencyInput(value, fallback, step) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return fallback;
+    }
+    return alignToStep(parsed, step);
+  }
+
+  function formatCurrency(value, currency = state.currency) {
+    const amount = Number(value) || 0;
+    return new Intl.NumberFormat(tr("currencyLocale"), {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
+
+  function renderCurrencyOptions() {
+    if (!els.currencySelect) {
+      return;
+    }
+    const current = state.currency;
+    els.currencySelect.innerHTML = [
+      `<option value="PLN">${escapeHtml(tr("currencyPLN"))}</option>`,
+      `<option value="USD">${escapeHtml(tr("currencyUSD"))}</option>`,
+      `<option value="RUB">${escapeHtml(tr("currencyRUB"))}</option>`
+    ].join("");
+    els.currencySelect.value = current;
+  }
+
+  function setCurrency(nextCurrency, options = {}) {
+    const target = CURRENCY_META[nextCurrency] ? nextCurrency : DEFAULT_CURRENCY;
+    const previous = state.currency;
+    const previousMinRub = convertAmount(state.filters.priceMin, previous, "RUB");
+    const previousMaxRub = convertAmount(state.filters.priceMax, previous, "RUB");
+
+    state.currency = target;
+    saveCurrency(target);
+
+    const limits = getCurrencyLimits(target);
+    const minValue = alignToStep(convertAmount(previousMinRub, "RUB", target), limits.step);
+    const maxValue = alignToStep(convertAmount(previousMaxRub, "RUB", target), limits.step);
+    setPriceFilter(minValue, maxValue);
+    renderCurrencyOptions();
+
+    if (!options.skipRender) {
+      renderCards();
+      if (state.activeAdId !== null) {
+        const ad = findAdById(state.activeAdId);
+        if (ad) {
+          els.productPrice.textContent = formatPrice(ad.price);
+        }
+      }
+    }
   }
 
   function setLanguage(lang, options = {}) {
@@ -399,6 +506,9 @@
     }
     if (els.priceFilterLabel) {
       els.priceFilterLabel.textContent = tr("price");
+    }
+    if (els.currencyFilterLabel) {
+      els.currencyFilterLabel.textContent = tr("currency");
     }
     if (els.priceFromLabel) {
       els.priceFromLabel.textContent = tr("from");
@@ -488,6 +598,7 @@
     if (els.sellerProfileLink) {
       els.sellerProfileLink.textContent = tr("openContact");
     }
+    renderCurrencyOptions();
     renderFilterOptions();
     updatePriceFilterUi();
     updateSupportUiByStatus(state.support.status);
@@ -514,14 +625,23 @@
       .replace(/'/g, "&#39;");
   }
 
-  function formatPrice(value) {
-    const num = Number(value) || 0;
-    return `${new Intl.NumberFormat(tr("currencyLocale")).format(num)} ₽`;
+  function formatPrice(valueRub) {
+    const inCurrentCurrency = convertAmount(valueRub, "RUB", state.currency);
+    return formatCurrency(inCurrentCurrency, state.currency);
   }
 
   function normalizePricePair(minValue, maxValue) {
-    let min = clampNumber(Math.round(Number(minValue) || PRICE_MIN_LIMIT), PRICE_MIN_LIMIT, PRICE_MAX_LIMIT);
-    let max = clampNumber(Math.round(Number(maxValue) || PRICE_MAX_LIMIT), PRICE_MIN_LIMIT, PRICE_MAX_LIMIT);
+    const limits = getCurrencyLimits();
+    let min = clampNumber(
+      normalizeCurrencyInput(minValue, limits.min, limits.step),
+      limits.min,
+      limits.max
+    );
+    let max = clampNumber(
+      normalizeCurrencyInput(maxValue, limits.max, limits.step),
+      limits.min,
+      limits.max
+    );
     if (min > max) {
       const tmp = min;
       min = max;
@@ -556,28 +676,35 @@
   }
 
   function updatePriceFilterUi() {
+    const limits = getCurrencyLimits();
     const min = state.filters.priceMin;
     const max = state.filters.priceMax;
     if (els.priceMinRange) {
       els.priceMinRange.value = String(min);
-      els.priceMinRange.min = String(PRICE_MIN_LIMIT);
-      els.priceMinRange.max = String(PRICE_MAX_LIMIT);
-      els.priceMinRange.step = String(PRICE_STEP);
+      els.priceMinRange.min = String(limits.min);
+      els.priceMinRange.max = String(limits.max);
+      els.priceMinRange.step = String(limits.step);
     }
     if (els.priceMaxRange) {
       els.priceMaxRange.value = String(max);
-      els.priceMaxRange.min = String(PRICE_MIN_LIMIT);
-      els.priceMaxRange.max = String(PRICE_MAX_LIMIT);
-      els.priceMaxRange.step = String(PRICE_STEP);
+      els.priceMaxRange.min = String(limits.min);
+      els.priceMaxRange.max = String(limits.max);
+      els.priceMaxRange.step = String(limits.step);
     }
     if (els.priceMinInput) {
       els.priceMinInput.value = String(min);
+      els.priceMinInput.min = String(limits.min);
+      els.priceMinInput.max = String(limits.max);
+      els.priceMinInput.step = String(limits.step);
     }
     if (els.priceMaxInput) {
       els.priceMaxInput.value = String(max);
+      els.priceMaxInput.min = String(limits.min);
+      els.priceMaxInput.max = String(limits.max);
+      els.priceMaxInput.step = String(limits.step);
     }
     if (els.priceRangeLabel) {
-      els.priceRangeLabel.textContent = `${formatPrice(min)} — ${formatPrice(max)}`;
+      els.priceRangeLabel.textContent = `${formatCurrency(min, state.currency)} — ${formatCurrency(max, state.currency)}`;
     }
   }
 
@@ -718,8 +845,17 @@
     const modelQuery = state.filters.model.trim().toLowerCase();
     const filterYear = state.filters.year;
     const filterBrand = state.filters.brand;
-    const minPrice = Number(state.filters.priceMin) || PRICE_MIN_LIMIT;
-    const maxPrice = Number(state.filters.priceMax) || PRICE_MAX_LIMIT;
+    const limits = getCurrencyLimits();
+    const minPrice = convertAmount(
+      Number(state.filters.priceMin) || limits.min,
+      state.currency,
+      "RUB"
+    );
+    const maxPrice = convertAmount(
+      Number(state.filters.priceMax) || limits.max,
+      state.currency,
+      "RUB"
+    );
     let result = [...state.ads];
 
     if (state.sideMode === "only-new") {
@@ -1333,6 +1469,12 @@
       els.priceMaxInput.addEventListener("blur", commitPriceInputs);
     }
 
+    if (els.currencySelect) {
+      els.currencySelect.addEventListener("change", (event) => {
+        setCurrency(String(event.target.value || DEFAULT_CURRENCY).toUpperCase());
+      });
+    }
+
     if (els.yearSelect) {
       els.yearSelect.addEventListener("change", (event) => {
         state.filters.year = event.target.value || "all";
@@ -1356,10 +1498,11 @@
 
     if (els.resetFiltersButton) {
       els.resetFiltersButton.addEventListener("click", () => {
+        const limits = getCurrencyLimits();
         state.filters.year = "all";
         state.filters.brand = "all";
         state.filters.model = "";
-        setPriceFilter(PRICE_MIN_LIMIT, PRICE_MAX_LIMIT);
+        setPriceFilter(limits.min, limits.max);
         if (els.yearSelect) {
           els.yearSelect.value = "all";
         }
@@ -1546,6 +1689,7 @@
   }
 
   setLanguage(state.lang, { skipRender: true });
+  setCurrency(state.currency, { skipRender: true });
   bindEvents();
   render();
   loadAds();

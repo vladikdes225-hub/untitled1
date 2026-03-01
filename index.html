@@ -42,6 +42,14 @@
 
         <div class="filter-group">
           <p class="filter-label" id="priceFilterLabel">Cena</p>
+          <label class="filter-field">
+            <span id="currencyFilterLabel">Waluta</span>
+            <select id="currencySelect">
+              <option value="PLN">PLN (zł)</option>
+              <option value="USD">USD ($)</option>
+              <option value="RUB">RUB (₽)</option>
+            </select>
+          </label>
           <p class="filter-range-value" id="priceRangeLabel">0 ₽ — 2 000 000 ₽</p>
           <div class="price-slider-wrap">
             <input id="priceMinRange" class="price-range range-min" type="range" min="0" max="2000000" step="1000" value="0" aria-label="Minimalna cena">
